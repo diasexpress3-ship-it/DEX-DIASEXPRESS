@@ -1,10 +1,24 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TeamImageUpload from "../components/TeamImageUpload";
 
 const DEFAULT_FOUNDER_IMAGE = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop";
 
 const About: React.FC = () => {
+  const [founderImage, setFounderImage] = useState(DEFAULT_FOUNDER_IMAGE);
+
+  // Carregar imagem salva ao iniciar
+  useEffect(() => {
+    const savedImage = localStorage.getItem('founderImage');
+    if (savedImage) {
+      setFounderImage(savedImage);
+    }
+  }, []);
+
+  const handleImageUpdate = (newUrl: string) => {
+    setFounderImage(newUrl);
+  };
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Header */}
@@ -59,13 +73,14 @@ const About: React.FC = () => {
 
           {/* Imagem do Founder com Upload */}
           <TeamImageUpload 
-            currentImageUrl={DEFAULT_FOUNDER_IMAGE}
+            currentImageUrl={founderImage}
             name="Vicente Dias"
             role="CEO & Founder"
+            onImageUpdate={handleImageUpdate}
           />
         </div>
 
-        {/* Quadros de Valores (AGILIDADE, INOVAÇÃO, QUALIDADE, FOCO) */}
+        {/* Quadros de Valores (AGILIDADE, INOVAÇÃO, QUALIDADE, FOCO) COM ANIMAÇÕES SEQUENCIAIS */}
         <div className="mb-32">
           <div className="text-center mb-16">
             <span className="text-dexBlue font-black text-[10px] uppercase tracking-[0.5em] mb-4 block">
@@ -77,32 +92,32 @@ const About: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Agilidade */}
-            <div className="bg-gradient-to-br from-dexBlue to-blue-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl hover:scale-105 transition-all duration-500 group">
+            {/* Agilidade - Animação up-down */}
+            <div className="bg-gradient-to-br from-dexBlue to-blue-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-up-down group">
               <span className="text-3xl font-black tracking-tighter mb-2">Agilidade</span>
               <p className="text-sm font-bold uppercase tracking-widest text-blue-200 opacity-0 group-hover:opacity-100 transition-opacity">
                 Resposta DEX
               </p>
             </div>
 
-            {/* Inovação */}
-            <div className="bg-gradient-to-br from-dexOrange to-orange-600 h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl hover:scale-105 transition-all duration-500 group">
+            {/* Inovação - Animação left-right (delay 1s) */}
+            <div className="bg-gradient-to-br from-dexOrange to-orange-600 h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-left-right animation-delay-1000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Inovação</span>
               <p className="text-sm font-bold uppercase tracking-widest text-orange-200 opacity-0 group-hover:opacity-100 transition-opacity">
                 Tecnologia
               </p>
             </div>
 
-            {/* Qualidade */}
-            <div className="bg-gradient-to-br from-dexGreen to-green-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl hover:scale-105 transition-all duration-500 group">
+            {/* Qualidade - Animação up-down (delay 2s) */}
+            <div className="bg-gradient-to-br from-dexGreen to-green-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-up-down animation-delay-2000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Qualidade</span>
               <p className="text-sm font-bold uppercase tracking-widest text-green-200 opacity-0 group-hover:opacity-100 transition-opacity">
                 Selo de Elite
               </p>
             </div>
 
-            {/* Foco */}
-            <div className="bg-gradient-to-br from-dexDarkBlue to-black h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl hover:scale-105 transition-all duration-500 group">
+            {/* Foco - Animação combinada (delay 3s) */}
+            <div className="bg-gradient-to-br from-dexDarkBlue to-black h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-combined animation-delay-3000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Foco</span>
               <p className="text-sm font-bold uppercase tracking-widest text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
                 No Cliente
@@ -111,7 +126,7 @@ const About: React.FC = () => {
           </div>
         </div>
 
-        {/* Serviços - DiasExpress */}
+        {/* Serviços - DiasExpress (mantido exatamente igual) */}
         <div className="mb-32">
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             <div className="bg-gray-50 p-10 rounded-[3rem] border border-gray-100 hover:shadow-xl transition-all group">
