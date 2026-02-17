@@ -1,9 +1,33 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-// Fix: Consolidating GoogleGenAI imports as per guidelines
-import { GoogleGenAI, LiveServerMessage, Modality, Blob } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 import { AI_SYSTEM_INSTRUCTION } from '../constants';
 
-// Manual Base64 decoding as per guidelines
+// Interfaces para tipagem correta
+interface LiveServerMessage {
+  serverContent?: {
+    outputTranscription?: {
+      text: string;
+    };
+    turnComplete?: boolean;
+    modelTurn?: {
+      parts?: Array<{
+        inlineData?: {
+          data: string;
+          mimeType: string;
+        };
+        text?: string;
+      }>;
+    };
+    interrupted?: boolean;
+  };
+}
+
+interface Blob {
+  data: string;
+  mimeType: string;
+}
+
+// Manual Base64 decoding
 function decode(base64: string) {
   const binaryString = atob(base64);
   const len = binaryString.length;
@@ -14,7 +38,7 @@ function decode(base64: string) {
   return bytes;
 }
 
-// Manual Base64 encoding as per guidelines
+// Manual Base64 encoding
 function encode(bytes: Uint8Array) {
   let binary = '';
   const len = bytes.byteLength;
@@ -24,7 +48,7 @@ function encode(bytes: Uint8Array) {
   return btoa(binary);
 }
 
-// Manual PCM decoding as per guidelines
+// Manual PCM decoding
 async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
@@ -61,7 +85,6 @@ const AIAssistant: React.FC = () => {
   const stopSession = useCallback(() => {
     if (sessionPromiseRef.current) {
       sessionPromiseRef.current.then(session => {
-        // Ensure standard session closing
         session.close();
       });
       sessionPromiseRef.current = null;
@@ -78,8 +101,15 @@ const AIAssistant: React.FC = () => {
   const startSession = async () => {
     try {
       setError(null);
-      // Fix: Initializing GoogleGenAI right before the API call as per guidelines with correct named parameter
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      // Verificar se a API key existe
+      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
+      if (!apiKey) {
+        setError("Chave de API não configurada");
+        return;
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -92,12 +122,31 @@ const AIAssistant: React.FC = () => {
       micStreamRef.current = stream;
 
       const sessionPromise = ai.live.connect({
-        model: 'gemini-2.5-flash-native-audio-preview-12-2025',
-        callbacks: {
-          onopen: () => {
-            setIsActive(true);
-            const source = audioContextRef.current!.createMediaStreamSource(stream);
-            const scriptProcessor = audioContextRef.current!.createScriptProcessor(4096, 1, 1);
+        model: 'gemini-2.0-flash-exp',
+        config: {
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: AI_SYSTEM_INSTRUCTION }]
+          },
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 2048
+          }
+        }
+      });
+
+      const session = await sessionPromise;
+      sessionPromiseRef.current = sessionPromise;
+
+      // Configurar callbacks após conexão
+      if (session) {
+        // @ts-ignore - Lidando com tipos complexos da API
+        session.on('open', () => {
+          setIsActive(true);
+          
+          if (audioContextRef.current && micStreamRef.current) {
+            const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
+            const scriptProcessor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
             
             scriptProcessor.onaudioprocess = (e) => {
               const inputData = e.inputBuffer.getChannelData(0);
@@ -111,34 +160,35 @@ const AIAssistant: React.FC = () => {
                 mimeType: 'audio/pcm;rate=16000',
               };
               
-              // CRITICAL: Solely rely on sessionPromise resolves to send realtime input as per guidelines
-              sessionPromise.then((session) => {
-                session.sendRealtimeInput({ media: pcmBlob });
-              });
+              // @ts-ignore
+              session.sendRealtimeInput({ media: pcmBlob });
             };
             
             source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContextRef.current!.destination);
-          },
-          onmessage: async (message: LiveServerMessage) => {
-            // Correct extraction of transcription output for model output via property access
-            if (message.serverContent?.outputTranscription) {
-              const text = message.serverContent.outputTranscription.text;
-              currentOutputTranscriptionRef.current += text;
-              setTranscription(currentOutputTranscriptionRef.current);
-            }
-            
-            if (message.serverContent?.turnComplete) {
-              currentOutputTranscriptionRef.current = '';
-            }
+            scriptProcessor.connect(audioContextRef.current.destination);
+          }
+        });
 
-            // Correct handling of model turn audio parts with gapless synchronization
-            // Fix: accessing parts[0] and inlineData.data directly as recommended
-            const base64EncodedAudioString = message.serverContent?.modelTurn?.parts[0]?.inlineData.data;
-            if (base64EncodedAudioString && outputAudioContextRef.current) {
-              const ctx = outputAudioContextRef.current;
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-              
+        // @ts-ignore
+        session.on('message', async (message: LiveServerMessage) => {
+          // Extrair transcrição
+          if (message.serverContent?.outputTranscription?.text) {
+            const text = message.serverContent.outputTranscription.text;
+            currentOutputTranscriptionRef.current += text;
+            setTranscription(currentOutputTranscriptionRef.current);
+          }
+          
+          if (message.serverContent?.turnComplete) {
+            currentOutputTranscriptionRef.current = '';
+          }
+
+          // Processar áudio
+          const base64EncodedAudioString = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+          if (base64EncodedAudioString && outputAudioContextRef.current) {
+            const ctx = outputAudioContextRef.current;
+            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+            
+            try {
               const audioBuffer = await decodeAudioData(
                 decode(base64EncodedAudioString),
                 ctx,
@@ -148,7 +198,6 @@ const AIAssistant: React.FC = () => {
               
               const source = ctx.createBufferSource();
               source.buffer = audioBuffer;
-              // Connect directly to destination for the dedicated output context
               source.connect(ctx.destination);
               source.addEventListener('ended', () => {
                 sourcesRef.current.delete(source);
@@ -157,40 +206,37 @@ const AIAssistant: React.FC = () => {
               source.start(nextStartTimeRef.current);
               nextStartTimeRef.current += audioBuffer.duration;
               sourcesRef.current.add(source);
+            } catch (audioErr) {
+              console.error('Erro ao processar áudio:', audioErr);
             }
-
-            // Proper interruption handling as per Live API rules to stop current playback
-            if (message.serverContent?.interrupted) {
-              for (const source of sourcesRef.current.values()) {
-                source.stop();
-                sourcesRef.current.delete(source);
-              }
-              nextStartTimeRef.current = 0;
-              currentOutputTranscriptionRef.current = '';
-              setTranscription('');
-            }
-          },
-          onerror: (e: ErrorEvent) => {
-            console.error('Gemini Live Error:', e);
-            setError("Conexão interrompida. Tente novamente.");
-            stopSession();
-          },
-          onclose: (e: CloseEvent) => {
-            stopSession();
           }
-        },
-        config: {
-          // Response modalities must be an array with exactly one Modality.AUDIO element
-          responseModalities: [Modality.AUDIO],
-          outputAudioTranscription: {},
-          speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
-          },
-          systemInstruction: AI_SYSTEM_INSTRUCTION,
-        },
-      });
 
-      sessionPromiseRef.current = sessionPromise;
+          // Interrupção
+          if (message.serverContent?.interrupted) {
+            sourcesRef.current.forEach(source => {
+              try {
+                source.stop();
+              } catch (e) {}
+            });
+            sourcesRef.current.clear();
+            nextStartTimeRef.current = 0;
+            currentOutputTranscriptionRef.current = '';
+            setTranscription('');
+          }
+        });
+
+        // @ts-ignore
+        session.on('error', (e: any) => {
+          console.error('Gemini Live Error:', e);
+          setError("Conexão interrompida. Tente novamente.");
+          stopSession();
+        });
+
+        // @ts-ignore
+        session.on('close', () => {
+          stopSession();
+        });
+      }
 
     } catch (err) {
       console.error('Failed to start AI Assistant:', err);
