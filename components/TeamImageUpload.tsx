@@ -1,37 +1,116 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { storage } from '../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useAuth } from '../hooks/useAuth';
 
 interface TeamImageUploadProps {
   currentImageUrl: string;
   name: string;
   role: string;
+  onImageUpdate?: (newUrl: string) => void;
 }
 
 const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   currentImageUrl,
   name,
-  role
+  role,
+  onImageUpdate
 }) => {
   const [imageUrl, setImageUrl] = useState(currentImageUrl);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { isAdmin, loading } = useAuth();
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Atualizar imagem quando a prop mudar
+  useEffect(() => {
+    setImageUrl(currentImageUrl);
+  }, [currentImageUrl]);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !isAdmin) return;
 
-    // Simular upload (substitua com sua lógica de upload real)
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor, selecione uma imagem válida.');
+      return;
+    }
+
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('A imagem deve ter no máximo 5MB.');
+      return;
+    }
+
     setUploading(true);
-    
-    // Criar preview local
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setTimeout(() => {
-        setImageUrl(event.target?.result as string);
-        setUploading(false);
-      }, 1500);
-    };
-    reader.readAsDataURL(file);
+    setError(null);
+
+    try {
+      // Criar preview local
+      const objectUrl = URL.createObjectURL(file);
+      setImageUrl(objectUrl);
+
+      // Upload para o Firebase Storage
+      const fileName = `founder_${Date.now()}.jpg`;
+      const storageRef = ref(storage, `team/${fileName}`);
+      
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+      
+      // Atualizar com URL real do Firebase
+      setImageUrl(downloadUrl);
+      
+      // Notificar componente pai
+      if (onImageUpdate) {
+        onImageUpdate(downloadUrl);
+      }
+
+      // Salvar no localStorage como fallback
+      localStorage.setItem('founderImage', downloadUrl);
+      
+      // Limpar preview URL
+      URL.revokeObjectURL(objectUrl);
+      
+    } catch (err) {
+      console.error('Erro no upload:', err);
+      setError('Erro ao fazer upload. Tente novamente.');
+      // Reverter para imagem anterior em caso de erro
+      setImageUrl(currentImageUrl);
+    } finally {
+      setUploading(false);
+    }
   };
 
+  // Se está carregando, mostra um placeholder
+  if (loading) {
+    return (
+      <div className="relative">
+        <div className="w-full h-96 bg-gray-200 rounded-[2.5rem] animate-pulse"></div>
+      </div>
+    );
+  }
+
+  // Se não é admin, mostra apenas a imagem sem opção de upload
+  if (!isAdmin) {
+    return (
+      <div className="relative group">
+        <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
+          <img 
+            src={imageUrl} 
+            alt={name}
+            className="w-full h-auto object-cover aspect-[4/5] transition-transform duration-700 group-hover:scale-110"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-dexDarkBlue via-transparent to-transparent opacity-60"></div>
+          <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+            <h3 className="text-3xl font-black tracking-tight mb-2">{name}</h3>
+            <p className="text-dexOrange font-bold text-sm uppercase tracking-widest">{role}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Se é admin, mostra com opção de upload
   return (
     <div className="relative group">
       <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
@@ -50,25 +129,28 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           <p className="text-dexOrange font-bold text-sm uppercase tracking-widest">{role}</p>
         </div>
 
-        {/* Botão de upload (aparece ao passar o mouse) */}
-        <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-500 cursor-pointer">
-          <div className="text-center text-white">
-            <div className="w-16 h-16 bg-dexOrange rounded-full flex items-center justify-center mx-auto mb-4 transform scale-90 group-hover:scale-100 transition-transform">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+        {/* Botão de upload (aparece ao passar o mouse) - APENAS PARA ADMIN */}
+        {isAdmin && (
+          <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-500 cursor-pointer">
+            <div className="text-center text-white">
+              <div className="w-16 h-16 bg-dexOrange rounded-full flex items-center justify-center mx-auto mb-4 transform scale-90 group-hover:scale-100 transition-transform">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <p className="font-bold text-lg">{uploading ? 'ENVIANDO...' : 'TROCAR FOTO'}</p>
+              <p className="text-sm text-gray-300 mt-2">Clique para selecionar uma imagem</p>
+              <p className="text-xs text-dexOrange mt-1">(Admin)</p>
             </div>
-            <p className="font-bold text-lg">{uploading ? 'ENVIANDO...' : 'TROCAR FOTO'}</p>
-            <p className="text-sm text-gray-300 mt-2">Clique para selecionar uma imagem</p>
-          </div>
-          <input 
-            type="file" 
-            accept="image/*"
-            onChange={handleImageUpload}
-            disabled={uploading}
-            className="hidden"
-          />
-        </label>
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="hidden"
+            />
+          </label>
+        )}
 
         {/* Loading overlay */}
         {uploading && (
@@ -77,6 +159,13 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-dexOrange border-t-transparent mx-auto mb-4"></div>
               <p className="text-white font-bold">Enviando imagem...</p>
             </div>
+          </div>
+        )}
+
+        {/* Mensagem de erro */}
+        {error && (
+          <div className="absolute bottom-4 left-4 right-4 bg-red-500 text-white p-3 rounded-xl text-sm">
+            {error}
           </div>
         )}
       </div>
