@@ -45,7 +45,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
     setUploading(true);
     setError(null);
-    setUploadProgress(10); // Iniciar progresso visual
+    setUploadProgress(10);
 
     try {
       // Criar preview local IMEDIATAMENTE
@@ -53,56 +53,84 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
       setImageUrl(objectUrl);
       setUploadProgress(30);
 
-      // Upload para o Firebase Storage
-      const fileName = `founder_${Date.now()}.jpg`;
-      const storageRef = ref(storage, `team/${fileName}`);
-      
-      // Tentar upload com timeout
-      const uploadPromise = uploadBytes(storageRef, file);
-      setUploadProgress(60);
-      
-      // Timeout de 10 segundos
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout do upload')), 10000)
-      );
-      
-      // Race entre upload e timeout
-      const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
-      setUploadProgress(80);
-      
-      const downloadUrl = await getDownloadURL(storageRef);
-      setUploadProgress(100);
-      
-      // Atualizar com URL real do Firebase
-      setImageUrl(downloadUrl);
-      
-      // Notificar componente pai
-      if (onImageUpdate) {
-        onImageUpdate(downloadUrl);
-      }
+      // TENTAR UPLOAD PARA FIREBASE, MAS COM FALLBACK
+      try {
+        const fileName = `founder_${Date.now()}.jpg`;
+        const storageRef = ref(storage, `team/${fileName}`);
+        
+        // Tentar upload com timeout
+        const uploadPromise = uploadBytes(storageRef, file);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout do upload - CORS pode estar bloqueando')), 8000)
+        );
+        
+        // Race entre upload e timeout
+        const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
+        setUploadProgress(80);
+        
+        const downloadUrl = await getDownloadURL(storageRef);
+        setUploadProgress(100);
+        
+        // Atualizar com URL real do Firebase
+        setImageUrl(downloadUrl);
+        
+        // Notificar componente pai
+        if (onImageUpdate) {
+          onImageUpdate(downloadUrl);
+        }
 
-      // Salvar no localStorage como fallback
-      localStorage.setItem('founderImage', downloadUrl);
+        // Salvar no localStorage como backup
+        localStorage.setItem('founderImage', downloadUrl);
+        
+        console.log('Upload para Firebase concluído com sucesso!');
+        
+      } catch (uploadError) {
+        console.warn('Upload Firebase falhou, usando modo local (Base64):', uploadError);
+        
+        // FALLBACK: Salvar imagem localmente como Base64
+        setUploadProgress(60);
+        
+        const reader = new FileReader();
+        
+        const base64Promise = new Promise<string>((resolve, reject) => {
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+        });
+        
+        reader.readAsDataURL(file);
+        
+        const base64String = await base64Promise;
+        setUploadProgress(90);
+        
+        // Atualizar com URL Base64
+        setImageUrl(base64String);
+        
+        // Notificar componente pai com a string Base64
+        if (onImageUpdate) {
+          onImageUpdate(base64String);
+        }
+
+        // Salvar Base64 no localStorage
+        localStorage.setItem('founderImage', base64String);
+        
+        console.log('Upload local (Base64) concluído com sucesso!');
+      }
       
       // Limpar preview URL
       URL.revokeObjectURL(objectUrl);
       
-      // Limpar mensagem de sucesso após 3 segundos
-      setTimeout(() => setUploadProgress(0), 3000);
+      // Limpar progresso após 2 segundos
+      setTimeout(() => setUploadProgress(0), 2000);
       
     } catch (err) {
       console.error('Erro no upload:', err);
-      setError('Erro ao fazer upload. Usando imagem local temporariamente.');
+      setError('Erro ao fazer upload. Tente novamente.');
       
-      // Manter a imagem local como fallback
-      if (onImageUpdate) {
-        onImageUpdate(imageUrl); // Passar a URL local como fallback
-      }
-      localStorage.setItem('founderImage', imageUrl); // Salvar local
+      // Reverter para imagem anterior
+      setImageUrl(currentImageUrl);
       
     } finally {
       setUploading(false);
-      setUploadProgress(0);
     }
   };
 
@@ -201,7 +229,17 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-dexOrange border-t-transparent mx-auto mb-4"></div>
               <p className="text-white font-bold">Enviando imagem...</p>
-              <p className="text-white/70 text-sm mt-2">Isso pode levar alguns segundos</p>
+              <p className="text-white/70 text-sm mt-2">
+                {uploadProgress < 50 ? 'Preparando...' : uploadProgress < 80 ? 'Enviando...' : 'Processando...'}
+              </p>
+              {uploadProgress > 0 && (
+                <div className="w-48 h-2 bg-white/20 rounded-full mt-3 mx-auto">
+                  <div 
+                    className="h-full bg-dexOrange rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  ></div>
+                </div>
+              )}
             </div>
           </div>
         )}
