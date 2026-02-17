@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { AI_SYSTEM_INSTRUCTION } from '../constants';
 
-// Interface simplificada para mensagens
 interface Message {
   text: string;
   sender: 'user' | 'ai';
@@ -15,6 +14,7 @@ const AIAssistant: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<any>(null);
@@ -25,77 +25,62 @@ const AIAssistant: React.FC = () => {
 
   const stopSession = useCallback(() => {
     if (sessionRef.current) {
-      sessionRef.current.close();
+      try {
+        sessionRef.current.close();
+      } catch (e) {
+        console.error('Erro ao fechar sessão:', e);
+      }
       sessionRef.current = null;
     }
     setIsActive(false);
+    setShowChat(false);
   }, []);
 
   const startSession = async () => {
     try {
       setError(null);
+      setIsLoading(true);
       
-      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
+      const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY;
       if (!apiKey) {
         setError("Chave de API não configurada");
+        setIsLoading(false);
         return;
       }
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Versão simplificada - apenas texto por enquanto
-      const session = await ai.live.connect({
+      // Criar sessão
+      const session = await ai.chats.create({
         model: 'gemini-2.0-flash-exp',
-        config: {
-          systemInstruction: {
-            role: 'system',
-            parts: [{ text: AI_SYSTEM_INSTRUCTION }]
-          },
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 2048
-          }
-        },
-        callbacks: {
-          onopen: () => {
-            setIsActive(true);
-          },
-          onmessage: (message: any) => {
-            // Processar mensagem de forma simplificada
-            if (message?.serverContent?.modelTurn?.parts) {
-              const parts = message.serverContent.modelTurn.parts;
-              for (const part of parts) {
-                if (part.text) {
-                  setMessages(prev => [...prev, { 
-                    text: part.text, 
-                    sender: 'ai' 
-                  }]);
-                }
-              }
-            }
-          },
-          onerror: (e: any) => {
-            console.error('Gemini Error:', e);
-            setError("Erro na conexão. Tente novamente.");
-            stopSession();
-          },
-          onclose: () => {
-            stopSession();
-          }
+        history: [],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048
         }
       });
 
       sessionRef.current = session;
+      setIsActive(true);
+      setShowChat(true);
+      setMessages([{
+        text: "Olá! Sou o assistente da DEX. Como posso ajudar você hoje?",
+        sender: 'ai'
+      }]);
+      setIsLoading(false);
 
     } catch (err) {
       console.error('Failed to start AI Assistant:', err);
       setError("Erro ao iniciar. Verifique sua conexão.");
+      setIsLoading(false);
+      setIsActive(false);
+      setShowChat(false);
     }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim() || !sessionRef.current || !isActive) return;
+    if (!inputText.trim() || !sessionRef.current || isLoading) return;
 
     const userMessage = inputText;
     setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
@@ -103,16 +88,16 @@ const AIAssistant: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Enviar mensagem para o modelo
-      await sessionRef.current.sendRealtimeInput({
-        media: {
-          data: btoa(userMessage),
-          mimeType: 'text/plain'
-        }
-      });
+      const response = await sessionRef.current.sendMessage(userMessage);
+      const aiResponse = response.text;
+      
+      setMessages(prev => [...prev, { 
+        text: aiResponse || "Desculpe, não entendi. Pode repetir?", 
+        sender: 'ai' 
+      }]);
     } catch (err) {
       console.error('Erro ao enviar mensagem:', err);
-      setError("Erro ao enviar mensagem.");
+      setError("Erro ao enviar mensagem. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +110,8 @@ const AIAssistant: React.FC = () => {
       setMessages([]);
     } else {
       setIsOpen(true);
+      // Não inicia automaticamente, mostra botão de iniciar
+      setShowChat(false);
     }
   };
 
@@ -145,9 +132,16 @@ const AIAssistant: React.FC = () => {
           </div>
           
           <div className="p-4 h-80 overflow-y-auto bg-gray-50/50 flex flex-col">
-            {!isActive ? (
+            {!showChat ? (
               <div className="text-center text-gray-500 mt-8">
-                <p className="text-sm">Clique em "INICIAR CONVERSA" para começar.</p>
+                <p className="text-sm mb-4">👋 Clique no botão abaixo para iniciar a conversa com o assistente DEX.</p>
+                <button 
+                  onClick={startSession}
+                  disabled={isLoading}
+                  className="bg-dexOrange text-white font-black py-3 px-6 rounded-xl hover:bg-opacity-90 transition-all text-sm tracking-widest uppercase disabled:opacity-50"
+                >
+                  {isLoading ? 'INICIANDO...' : 'INICIAR CONVERSA'}
+                </button>
               </div>
             ) : (
               <>
@@ -181,14 +175,20 @@ const AIAssistant: React.FC = () => {
               </>
             )}
             {error && (
-              <div className="text-red-500 text-sm text-center p-3">
+              <div className="text-red-500 text-sm text-center p-3 bg-red-50 rounded-xl">
                 {error}
+                <button 
+                  onClick={startSession}
+                  className="block mx-auto mt-2 text-dexOrange font-bold"
+                >
+                  Tentar novamente
+                </button>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
           
-          {isActive ? (
+          {showChat && (
             <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100">
               <div className="flex gap-2">
                 <input
@@ -208,15 +208,6 @@ const AIAssistant: React.FC = () => {
                 </button>
               </div>
             </form>
-          ) : (
-            <div className="p-4 border-t border-gray-100">
-              <button 
-                onClick={startSession}
-                className="w-full bg-dexOrange text-white font-black py-3 px-4 rounded-xl hover:bg-opacity-90 transition-all text-sm tracking-widest uppercase"
-              >
-                INICIAR CONVERSA
-              </button>
-            </div>
           )}
         </div>
       )}
@@ -225,7 +216,7 @@ const AIAssistant: React.FC = () => {
         onClick={toggleAssistant}
         className={`pointer-events-auto w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-2xl ${
           isOpen ? 'bg-dexDarkBlue rotate-90' : 'bg-dexBlue hover:bg-dexOrange'
-        } group relative overflow-hidden`}
+        }`}
       >
         {isOpen ? (
           <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
