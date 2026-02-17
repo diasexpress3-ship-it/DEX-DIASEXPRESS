@@ -51,7 +51,7 @@ const AIAssistant: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey });
       
       // Criar chat com a sintaxe correta
-      const chat = ai.chats.create({
+      const chat = await ai.chats.create({
         model: 'gemini-2.0-flash-exp',
         config: {
           systemInstruction: AI_SYSTEM_INSTRUCTION,
@@ -86,19 +86,44 @@ const AIAssistant: React.FC = () => {
     setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
     setInputText('');
     setIsLoading(true);
+    setError(null);
 
     try {
+      console.log('Enviando mensagem:', userMessage);
+      
       // Enviar mensagem e obter resposta
       const response = await sessionRef.current.sendMessage(userMessage);
-      const aiResponse = typeof response === 'string' ? response : response.text;
+      console.log('Resposta recebida:', response);
+      
+      // Extrair texto da resposta
+      let aiResponse = '';
+      if (typeof response === 'string') {
+        aiResponse = response;
+      } else if (response && response.text) {
+        aiResponse = response.text;
+      } else if (response && response.candidates && response.candidates[0]) {
+        aiResponse = response.candidates[0].content?.parts?.[0]?.text || '';
+      } else {
+        aiResponse = "Desculpe, não entendi. Pode reformular sua pergunta?";
+      }
       
       setMessages(prev => [...prev, { 
-        text: aiResponse || "Desculpe, não entendi. Pode repetir?", 
+        text: aiResponse, 
         sender: 'ai' 
       }]);
-    } catch (err) {
-      console.error('Erro ao enviar mensagem:', err);
-      setError("Erro ao enviar mensagem. Tente novamente.");
+    } catch (err: any) {
+      console.error('Erro detalhado ao enviar mensagem:', err);
+      
+      // Mensagem de erro mais específica
+      if (err.message?.includes('API key')) {
+        setError("Chave de API inválida. Verifique a configuração.");
+      } else if (err.message?.includes('quota')) {
+        setError("Limite de uso da API excedido. Tente novamente mais tarde.");
+      } else if (err.message?.includes('network')) {
+        setError("Erro de rede. Verifique sua conexão.");
+      } else {
+        setError("Erro ao enviar mensagem. Tente novamente.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +201,7 @@ const AIAssistant: React.FC = () => {
             )}
             {error && (
               <div className="text-red-500 text-sm text-center p-3 bg-red-50 rounded-xl">
-                {error}
+                <p>{error}</p>
                 <button 
                   onClick={startSession}
                   className="block mx-auto mt-2 text-dexOrange font-bold"
@@ -233,4 +258,3 @@ const AIAssistant: React.FC = () => {
 };
 
 export default AIAssistant;
-  
