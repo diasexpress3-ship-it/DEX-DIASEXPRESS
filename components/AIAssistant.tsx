@@ -2,105 +2,39 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { AI_SYSTEM_INSTRUCTION } from '../constants';
 
-// Interfaces para tipagem correta
-interface LiveServerMessage {
-  serverContent?: {
-    outputTranscription?: {
-      text: string;
-    };
-    turnComplete?: boolean;
-    modelTurn?: {
-      parts?: Array<{
-        inlineData?: {
-          data: string;
-          mimeType: string;
-        };
-        text?: string;
-      }>;
-    };
-    interrupted?: boolean;
-  };
-}
-
-interface Blob {
-  data: string;
-  mimeType: string;
-}
-
-// Manual Base64 decoding
-function decode(base64: string) {
-  const binaryString = atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes;
-}
-
-// Manual Base64 encoding
-function encode(bytes: Uint8Array) {
-  let binary = '';
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
-}
-
-// Manual PCM decoding
-async function decodeAudioData(
-  data: Uint8Array,
-  ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number,
-): Promise<AudioBuffer> {
-  const dataInt16 = new Int16Array(data.buffer);
-  const frameCount = dataInt16.length / numChannels;
-  const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
-
-  for (let channel = 0; channel < numChannels; channel++) {
-    const channelData = buffer.getChannelData(channel);
-    for (let i = 0; i < frameCount; i++) {
-      channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
-    }
-  }
-  return buffer;
+// Interface simplificada para mensagens
+interface Message {
+  text: string;
+  sender: 'user' | 'ai';
 }
 
 const AIAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const [transcription, setTranscription] = useState('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const outputAudioContextRef = useRef<AudioContext | null>(null);
-  const nextStartTimeRef = useRef(0);
-  const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<any>(null);
-  const micStreamRef = useRef<MediaStream | null>(null);
-  const currentOutputTranscriptionRef = useRef('');
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const stopSession = useCallback(() => {
     if (sessionRef.current) {
       sessionRef.current.close();
       sessionRef.current = null;
     }
-    if (micStreamRef.current) {
-      micStreamRef.current.getTracks().forEach(track => track.stop());
-      micStreamRef.current = null;
-    }
     setIsActive(false);
-    setTranscription('');
-    currentOutputTranscriptionRef.current = '';
   }, []);
 
   const startSession = async () => {
     try {
       setError(null);
       
-      // Verificar se a API key existe
       const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY || process.env.API_KEY;
       if (!apiKey) {
         setError("Chave de API não configurada");
@@ -109,17 +43,7 @@ const AIAssistant: React.FC = () => {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
-      }
-      if (!outputAudioContextRef.current) {
-        outputAudioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
-      }
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStreamRef.current = stream;
-
-      // Criar sessão com callbacks incluídos
+      // Versão simplificada - apenas texto por enquanto
       const session = await ai.live.connect({
         model: 'gemini-2.0-flash-exp',
         config: {
@@ -135,89 +59,24 @@ const AIAssistant: React.FC = () => {
         callbacks: {
           onopen: () => {
             setIsActive(true);
-            
-            if (audioContextRef.current && micStreamRef.current) {
-              const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
-              const scriptProcessor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-              
-              scriptProcessor.onaudioprocess = (e) => {
-                if (sessionRef.current) {
-                  const inputData = e.inputBuffer.getChannelData(0);
-                  const l = inputData.length;
-                  const int16 = new Int16Array(l);
-                  for (let i = 0; i < l; i++) {
-                    int16[i] = inputData[i] * 32768;
-                  }
-                  const pcmBlob: Blob = {
-                    data: encode(new Uint8Array(int16.buffer)),
-                    mimeType: 'audio/pcm;rate=16000',
-                  };
-                  
-                  sessionRef.current.sendRealtimeInput({ media: pcmBlob });
-                }
-              };
-              
-              source.connect(scriptProcessor);
-              scriptProcessor.connect(audioContextRef.current.destination);
-            }
           },
-          onmessage: async (message: LiveServerMessage) => {
-            // Extrair transcrição
-            if (message.serverContent?.outputTranscription?.text) {
-              const text = message.serverContent.outputTranscription.text;
-              currentOutputTranscriptionRef.current += text;
-              setTranscription(currentOutputTranscriptionRef.current);
-            }
-            
-            if (message.serverContent?.turnComplete) {
-              currentOutputTranscriptionRef.current = '';
-            }
-
-            // Processar áudio
-            const base64EncodedAudioString = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-            if (base64EncodedAudioString && outputAudioContextRef.current) {
-              const ctx = outputAudioContextRef.current;
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-              
-              try {
-                const audioBuffer = await decodeAudioData(
-                  decode(base64EncodedAudioString),
-                  ctx,
-                  24000,
-                  1,
-                );
-                
-                const source = ctx.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(ctx.destination);
-                source.addEventListener('ended', () => {
-                  sourcesRef.current.delete(source);
-                });
-                
-                source.start(nextStartTimeRef.current);
-                nextStartTimeRef.current += audioBuffer.duration;
-                sourcesRef.current.add(source);
-              } catch (audioErr) {
-                console.error('Erro ao processar áudio:', audioErr);
+          onmessage: (message: any) => {
+            // Processar mensagem de forma simplificada
+            if (message?.serverContent?.modelTurn?.parts) {
+              const parts = message.serverContent.modelTurn.parts;
+              for (const part of parts) {
+                if (part.text) {
+                  setMessages(prev => [...prev, { 
+                    text: part.text, 
+                    sender: 'ai' 
+                  }]);
+                }
               }
-            }
-
-            // Interrupção
-            if (message.serverContent?.interrupted) {
-              sourcesRef.current.forEach(source => {
-                try {
-                  source.stop();
-                } catch (e) {}
-              });
-              sourcesRef.current.clear();
-              nextStartTimeRef.current = 0;
-              currentOutputTranscriptionRef.current = '';
-              setTranscription('');
             }
           },
           onerror: (e: any) => {
-            console.error('Gemini Live Error:', e);
-            setError("Conexão interrompida. Tente novamente.");
+            console.error('Gemini Error:', e);
+            setError("Erro na conexão. Tente novamente.");
             stopSession();
           },
           onclose: () => {
@@ -230,7 +89,32 @@ const AIAssistant: React.FC = () => {
 
     } catch (err) {
       console.error('Failed to start AI Assistant:', err);
-      setError("Permissão de microfone negada ou erro de rede.");
+      setError("Erro ao iniciar. Verifique sua conexão.");
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim() || !sessionRef.current || !isActive) return;
+
+    const userMessage = inputText;
+    setMessages(prev => [...prev, { text: userMessage, sender: 'user' }]);
+    setInputText('');
+    setIsLoading(true);
+
+    try {
+      // Enviar mensagem para o modelo
+      await sessionRef.current.sendRealtimeInput({
+        media: {
+          data: btoa(userMessage),
+          mimeType: 'text/plain'
+        }
+      });
+    } catch (err) {
+      console.error('Erro ao enviar mensagem:', err);
+      setError("Erro ao enviar mensagem.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -238,14 +122,11 @@ const AIAssistant: React.FC = () => {
     if (isOpen) {
       stopSession();
       setIsOpen(false);
+      setMessages([]);
     } else {
       setIsOpen(true);
     }
   };
-
-  useEffect(() => {
-    return () => stopSession();
-  }, [stopSession]);
 
   return (
     <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end pointer-events-none">
@@ -263,57 +144,80 @@ const AIAssistant: React.FC = () => {
             </button>
           </div>
           
-          <div className="p-8 h-64 overflow-y-auto bg-gray-50/50 flex flex-col justify-center text-center">
-            {isActive ? (
-              <div className="space-y-6">
-                <div className="flex justify-center items-center gap-1 h-8">
-                  {[...Array(5)].map((_, i) => (
-                    <div 
-                      key={i} 
-                      className="w-1.5 bg-dexBlue rounded-full animate-bounce" 
-                      style={{ 
-                        height: '60%', 
-                        animationDelay: `${i * 0.1}s`,
-                        opacity: 0.7
-                      }}
-                    />
-                  ))}
-                </div>
-                <p className="text-gray-600 font-medium italic animate-pulse">Assistente ouvindo...</p>
-                {transcription && (
-                  <div className="text-xs text-gray-400 line-clamp-4 px-4 bg-white/50 p-3 rounded-xl">
-                    {transcription}
-                  </div>
-                )}
-              </div>
-            ) : error ? (
-              <div className="text-red-500 font-bold text-sm">
-                <p className="mb-4">{error}</p>
-                <button 
-                  onClick={startSession} 
-                  className="bg-dexBlue text-white px-6 py-2 rounded-xl text-xs hover:bg-opacity-90 transition-all"
-                >
-                  Tentar Novamente
-                </button>
+          <div className="p-4 h-80 overflow-y-auto bg-gray-50/50 flex flex-col">
+            {!isActive ? (
+              <div className="text-center text-gray-500 mt-8">
+                <p className="text-sm">Clique em "INICIAR CONVERSA" para começar.</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                <p className="text-gray-500 font-light leading-relaxed">
-                  "Olá! Sou a Inteligência DEX. Posso explicar nossos serviços ou ajudar com orçamentos via voz."
-                </p>
-                <button 
-                  onClick={startSession}
-                  className="bg-dexOrange text-white font-black py-4 px-8 rounded-2xl shadow-xl hover:scale-105 transition-all text-xs tracking-widest uppercase"
-                >
-                  INICIAR CONVERSA
-                </button>
+              <>
+                {messages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3 rounded-2xl ${
+                        msg.sender === 'user'
+                          ? 'bg-dexOrange text-white rounded-br-none'
+                          : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start mb-4">
+                    <div className="bg-gray-200 text-gray-800 p-3 rounded-2xl rounded-bl-none">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+            {error && (
+              <div className="text-red-500 text-sm text-center p-3">
+                {error}
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
           
-          <div className="p-4 border-t border-gray-100 text-center text-[10px] text-gray-400 font-black uppercase tracking-widest">
-            Powered by DEX Intelligence
-          </div>
+          {isActive ? (
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-100">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={inputText}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInputText(e.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="flex-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-dexOrange text-sm"
+                  disabled={isLoading}
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !inputText.trim()}
+                  className="bg-dexOrange text-white px-4 py-2 rounded-xl hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all text-sm font-bold"
+                >
+                  Enviar
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="p-4 border-t border-gray-100">
+              <button 
+                onClick={startSession}
+                className="w-full bg-dexOrange text-white font-black py-3 px-4 rounded-xl hover:bg-opacity-90 transition-all text-sm tracking-widest uppercase"
+              >
+                INICIAR CONVERSA
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -328,12 +232,9 @@ const AIAssistant: React.FC = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
           </svg>
         ) : (
-          <>
-            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
-            </svg>
-            <div className="absolute inset-0 bg-white/20 translate-x-full group-hover:translate-x-0 transition-transform"></div>
-          </>
+          <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+          </svg>
         )}
       </button>
     </div>
