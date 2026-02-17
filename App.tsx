@@ -12,6 +12,7 @@ import WaterManagement from "./pages/WaterManagement";
 import Partners from "./pages/Partners";
 import Contact from "./pages/Contact";
 import AIAssistant from "./components/AIAssistant";
+import AdminLogin from "./components/AdminLogin"; // <-- NOVA IMPORTAÇÃO
 
 // Helper component to scroll to top on route change
 const ScrollToTop = () => {
@@ -44,6 +45,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
         <AIAssistant />
+        <AdminLogin /> {/* <-- COMPONENTE DE LOGIN ADICIONADO AQUI */}
         <Footer />
       </div>
     </Router>
