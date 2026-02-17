@@ -19,6 +19,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const [imageUrl, setImageUrl] = useState(currentImageUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const { isAdmin, loading } = useAuth();
 
   // Atualizar imagem quando a prop mudar
@@ -44,18 +45,33 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
     setUploading(true);
     setError(null);
+    setUploadProgress(10); // Iniciar progresso visual
 
     try {
-      // Criar preview local
+      // Criar preview local IMEDIATAMENTE
       const objectUrl = URL.createObjectURL(file);
       setImageUrl(objectUrl);
+      setUploadProgress(30);
 
       // Upload para o Firebase Storage
       const fileName = `founder_${Date.now()}.jpg`;
       const storageRef = ref(storage, `team/${fileName}`);
       
-      await uploadBytes(storageRef, file);
+      // Tentar upload com timeout
+      const uploadPromise = uploadBytes(storageRef, file);
+      setUploadProgress(60);
+      
+      // Timeout de 10 segundos
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout do upload')), 10000)
+      );
+      
+      // Race entre upload e timeout
+      const snapshot = await Promise.race([uploadPromise, timeoutPromise]);
+      setUploadProgress(80);
+      
       const downloadUrl = await getDownloadURL(storageRef);
+      setUploadProgress(100);
       
       // Atualizar com URL real do Firebase
       setImageUrl(downloadUrl);
@@ -71,13 +87,22 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
       // Limpar preview URL
       URL.revokeObjectURL(objectUrl);
       
+      // Limpar mensagem de sucesso após 3 segundos
+      setTimeout(() => setUploadProgress(0), 3000);
+      
     } catch (err) {
       console.error('Erro no upload:', err);
-      setError('Erro ao fazer upload. Tente novamente.');
-      // Reverter para imagem anterior em caso de erro
-      setImageUrl(currentImageUrl);
+      setError('Erro ao fazer upload. Usando imagem local temporariamente.');
+      
+      // Manter a imagem local como fallback
+      if (onImageUpdate) {
+        onImageUpdate(imageUrl); // Passar a URL local como fallback
+      }
+      localStorage.setItem('founderImage', imageUrl); // Salvar local
+      
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -129,17 +154,35 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           <p className="text-dexOrange font-bold text-sm uppercase tracking-widest">{role}</p>
         </div>
 
-        {/* Botão de upload (aparece ao passar o mouse) - APENAS PARA ADMIN */}
+        {/* Barra de progresso do upload */}
+        {uploadProgress > 0 && uploadProgress < 100 && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-dexOrange/30">
+            <div 
+              className="h-full bg-dexOrange transition-all duration-300"
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+        )}
+
+        {/* Botão de upload (aparece ao passar o mouse) */}
         {isAdmin && (
           <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity duration-500 cursor-pointer">
             <div className="text-center text-white">
               <div className="w-16 h-16 bg-dexOrange rounded-full flex items-center justify-center mx-auto mb-4 transform scale-90 group-hover:scale-100 transition-transform">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
+                {uploading ? (
+                  <svg className="w-8 h-8 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                ) : (
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
               </div>
               <p className="font-bold text-lg">{uploading ? 'ENVIANDO...' : 'TROCAR FOTO'}</p>
-              <p className="text-sm text-gray-300 mt-2">Clique para selecionar uma imagem</p>
+              <p className="text-sm text-gray-300 mt-2">
+                {uploading ? 'Aguarde...' : 'Clique para selecionar uma imagem'}
+              </p>
               <p className="text-xs text-dexOrange mt-1">(Admin)</p>
             </div>
             <input 
@@ -154,10 +197,11 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
         {/* Loading overlay */}
         {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80">
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-dexOrange border-t-transparent mx-auto mb-4"></div>
               <p className="text-white font-bold">Enviando imagem...</p>
+              <p className="text-white/70 text-sm mt-2">Isso pode levar alguns segundos</p>
             </div>
           </div>
         )}
