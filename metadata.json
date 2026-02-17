@@ -1,0 +1,9 @@
+{
+  "name": "WEB DEX ",
+  "description": "Innovative solutions and management services including domestic solutions and event invitation management.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone",
+    "geolocation"
+  ]
+}
