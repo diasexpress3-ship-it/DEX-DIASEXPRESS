@@ -78,16 +78,14 @@ const AIAssistant: React.FC = () => {
   const outputAudioContextRef = useRef<AudioContext | null>(null);
   const nextStartTimeRef = useRef(0);
   const sourcesRef = useRef<Set<AudioBufferSourceNode>>(new Set());
-  const sessionPromiseRef = useRef<Promise<any> | null>(null);
+  const sessionRef = useRef<any>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
   const currentOutputTranscriptionRef = useRef('');
 
   const stopSession = useCallback(() => {
-    if (sessionPromiseRef.current) {
-      sessionPromiseRef.current.then(session => {
-        session.close();
-      });
-      sessionPromiseRef.current = null;
+    if (sessionRef.current) {
+      sessionRef.current.close();
+      sessionRef.current = null;
     }
     if (micStreamRef.current) {
       micStreamRef.current.getTracks().forEach(track => track.stop());
@@ -121,7 +119,8 @@ const AIAssistant: React.FC = () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       micStreamRef.current = stream;
 
-      const sessionPromise = ai.live.connect({
+      // Criar sessão com callbacks incluídos
+      const session = await ai.live.connect({
         model: 'gemini-2.0-flash-exp',
         config: {
           systemInstruction: {
@@ -132,111 +131,102 @@ const AIAssistant: React.FC = () => {
             temperature: 0.7,
             maxOutputTokens: 2048
           }
+        },
+        callbacks: {
+          onopen: () => {
+            setIsActive(true);
+            
+            if (audioContextRef.current && micStreamRef.current) {
+              const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
+              const scriptProcessor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
+              
+              scriptProcessor.onaudioprocess = (e) => {
+                if (sessionRef.current) {
+                  const inputData = e.inputBuffer.getChannelData(0);
+                  const l = inputData.length;
+                  const int16 = new Int16Array(l);
+                  for (let i = 0; i < l; i++) {
+                    int16[i] = inputData[i] * 32768;
+                  }
+                  const pcmBlob: Blob = {
+                    data: encode(new Uint8Array(int16.buffer)),
+                    mimeType: 'audio/pcm;rate=16000',
+                  };
+                  
+                  sessionRef.current.sendRealtimeInput({ media: pcmBlob });
+                }
+              };
+              
+              source.connect(scriptProcessor);
+              scriptProcessor.connect(audioContextRef.current.destination);
+            }
+          },
+          onmessage: async (message: LiveServerMessage) => {
+            // Extrair transcrição
+            if (message.serverContent?.outputTranscription?.text) {
+              const text = message.serverContent.outputTranscription.text;
+              currentOutputTranscriptionRef.current += text;
+              setTranscription(currentOutputTranscriptionRef.current);
+            }
+            
+            if (message.serverContent?.turnComplete) {
+              currentOutputTranscriptionRef.current = '';
+            }
+
+            // Processar áudio
+            const base64EncodedAudioString = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+            if (base64EncodedAudioString && outputAudioContextRef.current) {
+              const ctx = outputAudioContextRef.current;
+              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+              
+              try {
+                const audioBuffer = await decodeAudioData(
+                  decode(base64EncodedAudioString),
+                  ctx,
+                  24000,
+                  1,
+                );
+                
+                const source = ctx.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(ctx.destination);
+                source.addEventListener('ended', () => {
+                  sourcesRef.current.delete(source);
+                });
+                
+                source.start(nextStartTimeRef.current);
+                nextStartTimeRef.current += audioBuffer.duration;
+                sourcesRef.current.add(source);
+              } catch (audioErr) {
+                console.error('Erro ao processar áudio:', audioErr);
+              }
+            }
+
+            // Interrupção
+            if (message.serverContent?.interrupted) {
+              sourcesRef.current.forEach(source => {
+                try {
+                  source.stop();
+                } catch (e) {}
+              });
+              sourcesRef.current.clear();
+              nextStartTimeRef.current = 0;
+              currentOutputTranscriptionRef.current = '';
+              setTranscription('');
+            }
+          },
+          onerror: (e: any) => {
+            console.error('Gemini Live Error:', e);
+            setError("Conexão interrompida. Tente novamente.");
+            stopSession();
+          },
+          onclose: () => {
+            stopSession();
+          }
         }
       });
 
-      const session = await sessionPromise;
-      sessionPromiseRef.current = sessionPromise;
-
-      // Configurar callbacks após conexão
-      if (session) {
-        // @ts-ignore - Lidando com tipos complexos da API
-        session.on('open', () => {
-          setIsActive(true);
-          
-          if (audioContextRef.current && micStreamRef.current) {
-            const source = audioContextRef.current.createMediaStreamSource(micStreamRef.current);
-            const scriptProcessor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
-            
-            scriptProcessor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const l = inputData.length;
-              const int16 = new Int16Array(l);
-              for (let i = 0; i < l; i++) {
-                int16[i] = inputData[i] * 32768;
-              }
-              const pcmBlob: Blob = {
-                data: encode(new Uint8Array(int16.buffer)),
-                mimeType: 'audio/pcm;rate=16000',
-              };
-              
-              // @ts-ignore
-              session.sendRealtimeInput({ media: pcmBlob });
-            };
-            
-            source.connect(scriptProcessor);
-            scriptProcessor.connect(audioContextRef.current.destination);
-          }
-        });
-
-        // @ts-ignore
-        session.on('message', async (message: LiveServerMessage) => {
-          // Extrair transcrição
-          if (message.serverContent?.outputTranscription?.text) {
-            const text = message.serverContent.outputTranscription.text;
-            currentOutputTranscriptionRef.current += text;
-            setTranscription(currentOutputTranscriptionRef.current);
-          }
-          
-          if (message.serverContent?.turnComplete) {
-            currentOutputTranscriptionRef.current = '';
-          }
-
-          // Processar áudio
-          const base64EncodedAudioString = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-          if (base64EncodedAudioString && outputAudioContextRef.current) {
-            const ctx = outputAudioContextRef.current;
-            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-            
-            try {
-              const audioBuffer = await decodeAudioData(
-                decode(base64EncodedAudioString),
-                ctx,
-                24000,
-                1,
-              );
-              
-              const source = ctx.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(ctx.destination);
-              source.addEventListener('ended', () => {
-                sourcesRef.current.delete(source);
-              });
-              
-              source.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += audioBuffer.duration;
-              sourcesRef.current.add(source);
-            } catch (audioErr) {
-              console.error('Erro ao processar áudio:', audioErr);
-            }
-          }
-
-          // Interrupção
-          if (message.serverContent?.interrupted) {
-            sourcesRef.current.forEach(source => {
-              try {
-                source.stop();
-              } catch (e) {}
-            });
-            sourcesRef.current.clear();
-            nextStartTimeRef.current = 0;
-            currentOutputTranscriptionRef.current = '';
-            setTranscription('');
-          }
-        });
-
-        // @ts-ignore
-        session.on('error', (e: any) => {
-          console.error('Gemini Live Error:', e);
-          setError("Conexão interrompida. Tente novamente.");
-          stopSession();
-        });
-
-        // @ts-ignore
-        session.on('close', () => {
-          stopSession();
-        });
-      }
+      sessionRef.current = session;
 
     } catch (err) {
       console.error('Failed to start AI Assistant:', err);
