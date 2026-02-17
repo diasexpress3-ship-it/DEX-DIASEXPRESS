@@ -50,17 +50,17 @@ const AIAssistant: React.FC = () => {
 
       const ai = new GoogleGenAI({ apiKey });
       
-      // Criar sessão
-      const session = await ai.chats.create({
+      // Criar chat com a sintaxe correta
+      const chat = ai.chats.create({
         model: 'gemini-2.0-flash-exp',
-        history: [],
-        generationConfig: {
+        config: {
+          systemInstruction: AI_SYSTEM_INSTRUCTION,
           temperature: 0.7,
           maxOutputTokens: 2048
         }
       });
 
-      sessionRef.current = session;
+      sessionRef.current = chat;
       setIsActive(true);
       setShowChat(true);
       setMessages([{
@@ -88,8 +88,9 @@ const AIAssistant: React.FC = () => {
     setIsLoading(true);
 
     try {
+      // Enviar mensagem e obter resposta
       const response = await sessionRef.current.sendMessage(userMessage);
-      const aiResponse = response.text;
+      const aiResponse = typeof response === 'string' ? response : response.text;
       
       setMessages(prev => [...prev, { 
         text: aiResponse || "Desculpe, não entendi. Pode repetir?", 
@@ -110,7 +111,6 @@ const AIAssistant: React.FC = () => {
       setMessages([]);
     } else {
       setIsOpen(true);
-      // Não inicia automaticamente, mostra botão de iniciar
       setShowChat(false);
     }
   };
@@ -233,3 +233,4 @@ const AIAssistant: React.FC = () => {
 };
 
 export default AIAssistant;
+  
