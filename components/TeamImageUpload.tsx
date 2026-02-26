@@ -10,8 +10,8 @@ interface TeamImageUploadProps {
   onImageUpdate?: (newUrl: string) => void;
 }
 
-// Chave da API do ImgBB (substitua pela sua chave real)
-const IMGBB_API_KEY = 'SUA_CHAVE_API_DO_IMGBB_AQUI';
+// Chave da API do ImgBB via variável de ambiente
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_KEY || '';
 
 const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   currentImageUrl,
@@ -32,6 +32,11 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
   // Função para fazer upload para o ImgBB
   const uploadToImgBB = async (file: File): Promise<string> => {
+    // Verificar se a chave da API está configurada
+    if (!IMGBB_API_KEY) {
+      throw new Error('Chave da API do ImgBB não configurada. Adicione NEXT_PUBLIC_IMGBB_KEY no .env');
+    }
+
     const formData = new FormData();
     formData.append('image', file);
 
@@ -98,7 +103,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
         // Salvar no localStorage como backup
         localStorage.setItem('founderImage', imgbbUrl);
         
-        console.log('✅ Upload para ImgBB concluído com sucesso!');
+        console.log('✅ Upload para ImgBB concluído com sucesso! URL:', imgbbUrl);
         
       } catch (uploadError) {
         console.warn('Upload ImgBB falhou, usando modo local (Base64):', uploadError);
