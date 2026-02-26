@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { storage } from '../services/firebase';
+import { storage, db } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '../hooks/useAuth';
 
 interface TeamImageUploadProps {
@@ -33,19 +34,19 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
     setImageUrl(currentImageUrl);
   }, [currentImageUrl]);
 
-  // Funções para salvar e buscar URL no Realtime Database
-  const saveImageToFirebase = async (imageUrl: string) => {
+  // Funções para salvar URL no Firestore
+  const saveImageToFirestore = async (imageUrl: string) => {
     try {
-      const { getDatabase, ref, set } = await import('firebase/database');
-      const db = getDatabase();
-      await set(ref(db, 'config/founderImage'), {
+      // Salvar no Firestore na coleção 'config', documento 'founderImage'
+      await setDoc(doc(db, 'config', 'founderImage'), {
         url: imageUrl,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        updatedBy: 'admin'
       });
-      console.log('✅ URL salva no Realtime Database para todos os usuários!');
+      console.log('✅ URL salva no Firestore para todos os usuários!');
       return true;
     } catch (error) {
-      console.error('❌ Erro ao salvar no Firebase:', error);
+      console.error('❌ Erro ao salvar no Firestore:', error);
       return false;
     }
   };
@@ -115,8 +116,8 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
         setImageUrl(imgbbUrl);
         setUploadProgress(100);
         
-        // SALVAR NO FIREBASE PARA TODOS OS USUÁRIOS
-        await saveImageToFirebase(imgbbUrl);
+        // SALVAR NO FIRESTORE PARA TODOS OS USUÁRIOS
+        await saveImageToFirestore(imgbbUrl);
         
         // Notificar componente pai
         if (onImageUpdate) {
