@@ -10,8 +10,8 @@ interface TeamImageUploadProps {
   onImageUpdate?: (newUrl: string) => void;
 }
 
-// Chave da API do ImgBB via variável de ambiente
-const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_KEY || '';
+// Chave da API do ImgBB via variável de ambiente (Vite)
+const IMGBB_API_KEY = import.meta.env.VITE_IMGBB_KEY || '';
 
 const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   currentImageUrl,
@@ -25,6 +25,12 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const { isAdmin, loading } = useAuth();
 
+  // LOG PARA VERIFICAR SE A VARIÁVEL ESTÁ CONFIGURADA
+  console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅ Configurada' : '❌ Não configurada');
+  
+  // Se quiser ver o valor (parcial) da chave, descomente a linha abaixo:
+  // console.log('🔑 Valor da chave:', import.meta.env.VITE_IMGBB_KEY?.substring(0, 5) + '...');
+
   // Atualizar imagem quando a prop mudar
   useEffect(() => {
     setImageUrl(currentImageUrl);
@@ -34,7 +40,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const uploadToImgBB = async (file: File): Promise<string> => {
     // Verificar se a chave da API está configurada
     if (!IMGBB_API_KEY) {
-      throw new Error('Chave da API do ImgBB não configurada. Adicione NEXT_PUBLIC_IMGBB_KEY no .env');
+      throw new Error('Chave da API do ImgBB não configurada. Adicione VITE_IMGBB_KEY no .env');
     }
 
     const formData = new FormData();
