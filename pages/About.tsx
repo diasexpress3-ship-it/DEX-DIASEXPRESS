@@ -17,6 +17,7 @@ const About: React.FC = () => {
 
   const handleImageUpdate = (newUrl: string) => {
     setFounderImage(newUrl);
+    // A imagem já é salva no localStorage pelo componente TeamImageUpload
   };
 
   return (
