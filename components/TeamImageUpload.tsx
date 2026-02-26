@@ -27,14 +27,28 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
   // LOG PARA VERIFICAR SE A VARIÁVEL ESTÁ CONFIGURADA
   console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅ Configurada' : '❌ Não configurada');
-  
-  // Se quiser ver o valor (parcial) da chave, descomente a linha abaixo:
-  // console.log('🔑 Valor da chave:', import.meta.env.VITE_IMGBB_KEY?.substring(0, 5) + '...');
 
   // Atualizar imagem quando a prop mudar
   useEffect(() => {
     setImageUrl(currentImageUrl);
   }, [currentImageUrl]);
+
+  // Funções para salvar e buscar URL no Realtime Database
+  const saveImageToFirebase = async (imageUrl: string) => {
+    try {
+      const { getDatabase, ref, set } = await import('firebase/database');
+      const db = getDatabase();
+      await set(ref(db, 'config/founderImage'), {
+        url: imageUrl,
+        updatedAt: new Date().toISOString()
+      });
+      console.log('✅ URL salva no Realtime Database para todos os usuários!');
+      return true;
+    } catch (error) {
+      console.error('❌ Erro ao salvar no Firebase:', error);
+      return false;
+    }
+  };
 
   // Função para fazer upload para o ImgBB
   const uploadToImgBB = async (file: File): Promise<string> => {
@@ -100,6 +114,9 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
         // Atualizar com URL real do ImgBB
         setImageUrl(imgbbUrl);
         setUploadProgress(100);
+        
+        // SALVAR NO FIREBASE PARA TODOS OS USUÁRIOS
+        await saveImageToFirebase(imgbbUrl);
         
         // Notificar componente pai
         if (onImageUpdate) {
