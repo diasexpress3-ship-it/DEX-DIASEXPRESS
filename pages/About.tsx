@@ -6,19 +6,66 @@ const DEFAULT_FOUNDER_IMAGE = "https://images.unsplash.com/photo-1519085360753-a
 
 const About: React.FC = () => {
   const [founderImage, setFounderImage] = useState(DEFAULT_FOUNDER_IMAGE);
+  const [loading, setLoading] = useState(true);
 
-  // Carregar imagem salva ao iniciar
+  // Carregar imagem salva ao iniciar (primeiro do Firebase, depois localStorage)
   useEffect(() => {
-    const savedImage = localStorage.getItem('founderImage');
-    if (savedImage) {
-      setFounderImage(savedImage);
-    }
+    const loadImage = async () => {
+      try {
+        // Primeiro tenta buscar do Firebase (para todos os usuários)
+        const { getDatabase, ref, get } = await import('firebase/database');
+        const db = getDatabase();
+        const snapshot = await get(ref(db, 'config/founderImage'));
+        
+        if (snapshot.exists()) {
+          const firebaseUrl = snapshot.val().url;
+          setFounderImage(firebaseUrl);
+          // Atualiza localStorage como backup
+          localStorage.setItem('founderImage', firebaseUrl);
+          console.log('✅ Imagem carregada do Firebase:', firebaseUrl);
+        } else {
+          // Se não tiver no Firebase, tenta o localStorage
+          const savedImage = localStorage.getItem('founderImage');
+          if (savedImage) {
+            setFounderImage(savedImage);
+            console.log('✅ Imagem carregada do localStorage');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar imagem do Firebase:', error);
+        // Fallback para localStorage
+        const savedImage = localStorage.getItem('founderImage');
+        if (savedImage) {
+          setFounderImage(savedImage);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadImage();
   }, []);
 
   const handleImageUpdate = (newUrl: string) => {
     setFounderImage(newUrl);
-    // A imagem já é salva no localStorage pelo componente TeamImageUpload
+    // A imagem já é salva no Firebase pelo componente TeamImageUpload
   };
+
+  // Se estiver carregando, mostra um skeleton sutil (mantém o design)
+  if (loading) {
+    return (
+      <div className="bg-white min-h-screen">
+        <div className="bg-dexDarkBlue py-32 text-white text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-dexBlue/20 to-dexOrange/20 opacity-50"></div>
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="h-8 w-32 bg-white/20 animate-pulse rounded-full mx-auto mb-4"></div>
+            <div className="h-20 w-3/4 bg-white/20 animate-pulse rounded-lg mx-auto mb-6"></div>
+            <div className="h-12 w-2/3 bg-white/20 animate-pulse rounded-lg mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white min-h-screen">
