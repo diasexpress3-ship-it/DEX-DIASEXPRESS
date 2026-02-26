@@ -10,6 +10,9 @@ interface TeamImageUploadProps {
   onImageUpdate?: (newUrl: string) => void;
 }
 
+// Chave da API do ImgBB (substitua pela sua chave real)
+const IMGBB_API_KEY = 'SUA_CHAVE_API_DO_IMGBB_AQUI';
+
 const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   currentImageUrl,
   name,
@@ -26,6 +29,30 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   useEffect(() => {
     setImageUrl(currentImageUrl);
   }, [currentImageUrl]);
+
+  // Função para fazer upload para o ImgBB
+  const uploadToImgBB = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Falha no upload para o ImgBB');
+    }
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.error?.message || 'Erro desconhecido no ImgBB');
+    }
+
+    // Retorna a URL direta da imagem
+    return data.data.url;
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -53,39 +80,28 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
       setImageUrl(objectUrl);
       setUploadProgress(30);
 
-      // TENTAR UPLOAD PARA FIREBASE, MAS COM FALLBACK
+      // Tentar upload para ImgBB
       try {
-        const fileName = `founder_${Date.now()}.jpg`;
-        const storageRef = ref(storage, `team/${fileName}`);
-        
-        // Tentar upload com timeout
-        const uploadPromise = uploadBytes(storageRef, file);
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout do upload - CORS pode estar bloqueando')), 8000)
-        );
-        
-        // Race entre upload e timeout
-        const snapshot = await Promise.race([uploadPromise, timeoutPromise]) as any;
-        setUploadProgress(80);
-        
-        const downloadUrl = await getDownloadURL(storageRef);
+        setUploadProgress(50);
+        const imgbbUrl = await uploadToImgBB(file);
+        setUploadProgress(90);
+
+        // Atualizar com URL real do ImgBB
+        setImageUrl(imgbbUrl);
         setUploadProgress(100);
-        
-        // Atualizar com URL real do Firebase
-        setImageUrl(downloadUrl);
         
         // Notificar componente pai
         if (onImageUpdate) {
-          onImageUpdate(downloadUrl);
+          onImageUpdate(imgbbUrl);
         }
 
         // Salvar no localStorage como backup
-        localStorage.setItem('founderImage', downloadUrl);
+        localStorage.setItem('founderImage', imgbbUrl);
         
-        console.log('Upload para Firebase concluído com sucesso!');
+        console.log('✅ Upload para ImgBB concluído com sucesso!');
         
       } catch (uploadError) {
-        console.warn('Upload Firebase falhou, usando modo local (Base64):', uploadError);
+        console.warn('Upload ImgBB falhou, usando modo local (Base64):', uploadError);
         
         // FALLBACK: Salvar imagem localmente como Base64
         setUploadProgress(60);
