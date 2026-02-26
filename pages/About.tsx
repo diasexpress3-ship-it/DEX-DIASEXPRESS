@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import TeamImageUpload from "../components/TeamImageUpload";
+import { db } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 const DEFAULT_FOUNDER_IMAGE = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=800&auto=format&fit=crop";
 
@@ -8,23 +10,22 @@ const About: React.FC = () => {
   const [founderImage, setFounderImage] = useState(DEFAULT_FOUNDER_IMAGE);
   const [loading, setLoading] = useState(true);
 
-  // Carregar imagem salva ao iniciar (primeiro do Firebase, depois localStorage)
+  // Carregar imagem salva ao iniciar (primeiro do Firestore, depois localStorage)
   useEffect(() => {
     const loadImage = async () => {
       try {
-        // Primeiro tenta buscar do Firebase (para todos os usuários)
-        const { getDatabase, ref, get } = await import('firebase/database');
-        const db = getDatabase();
-        const snapshot = await get(ref(db, 'config/founderImage'));
+        // Primeiro tenta buscar do Firestore (para todos os usuários)
+        const docRef = doc(db, 'config', 'founderImage');
+        const docSnap = await getDoc(docRef);
         
-        if (snapshot.exists()) {
-          const firebaseUrl = snapshot.val().url;
-          setFounderImage(firebaseUrl);
+        if (docSnap.exists()) {
+          const firestoreUrl = docSnap.data().url;
+          setFounderImage(firestoreUrl);
           // Atualiza localStorage como backup
-          localStorage.setItem('founderImage', firebaseUrl);
-          console.log('✅ Imagem carregada do Firebase:', firebaseUrl);
+          localStorage.setItem('founderImage', firestoreUrl);
+          console.log('✅ Imagem carregada do Firestore:', firestoreUrl);
         } else {
-          // Se não tiver no Firebase, tenta o localStorage
+          // Se não tiver no Firestore, tenta o localStorage
           const savedImage = localStorage.getItem('founderImage');
           if (savedImage) {
             setFounderImage(savedImage);
@@ -32,7 +33,7 @@ const About: React.FC = () => {
           }
         }
       } catch (error) {
-        console.error('Erro ao carregar imagem do Firebase:', error);
+        console.error('Erro ao carregar imagem do Firestore:', error);
         // Fallback para localStorage
         const savedImage = localStorage.getItem('founderImage');
         if (savedImage) {
@@ -48,7 +49,7 @@ const About: React.FC = () => {
 
   const handleImageUpdate = (newUrl: string) => {
     setFounderImage(newUrl);
-    // A imagem já é salva no Firebase pelo componente TeamImageUpload
+    // A imagem já é salva no Firestore pelo componente TeamImageUpload
   };
 
   // Se estiver carregando, mostra um skeleton sutil (mantém o design)
@@ -67,6 +68,7 @@ const About: React.FC = () => {
     );
   }
 
+  // Resto do componente (todo o design original permanece igual)
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Header */}
