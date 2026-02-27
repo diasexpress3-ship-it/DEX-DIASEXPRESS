@@ -1,4 +1,4 @@
-import { ServiceInfo, Partner } from './types';
+import { ServiceInfo, Partner, ServiceCategory } from './types';
 
 export const SLOGAN = "Simplificando Seu Dia";
 export const BRAND_NAME = "DEX | DIASEXPRESS";
@@ -23,30 +23,121 @@ Localização: Maputo, Moçambique.
 Sempre ofereça ajuda para explicar serviços ou direcionar para a página de contato. Responda de forma concisa e amigável.
 `;
 
-// Mapeamento de imagens por ID do serviço - MIX DE JPG E GIF
+// Categorias detalhadas da DIASEXPRESS Soluções Domésticas
+export const DIASEXPRESS_CATEGORIES = [
+  {
+    id: "domesticos-gerais",
+    title: "🏠 Serviços Domésticos Gerais",
+    description: "Serviços essenciais para manutenção e organização do lar, garantindo conforto, higiene e bem-estar no dia a dia.",
+    items: [
+      "Limpeza doméstica (regular / profunda)",
+      "Organização de casas",
+      "Lavagem de loiça",
+      "Lavandaria e engomadoria",
+      "Limpeza pós-obra",
+      "Limpeza pós-mudança"
+    ]
+  },
+  {
+    id: "limpeza-especializada",
+    title: "🧹 Limpeza Especializada",
+    description: "Serviços profissionais de limpeza para ambientes comerciais, empresariais e espaços de grande circulação, com padrões elevados de higiene e segurança.",
+    items: [
+      "Limpeza de escritórios",
+      "Limpeza de condomínios",
+      "Limpeza de lojas",
+      "Limpeza de armazéns",
+      "Limpeza industrial leve",
+      "Higienização de espaços",
+      "Desinfeção (casas e empresas)"
+    ]
+  },
+  {
+    id: "manutencao-reparacoes",
+    title: "🔧 Manutenção & Reparações",
+    description: "Serviços técnicos para resolver problemas domésticos e garantir o bom funcionamento das instalações da residência ou empresa.",
+    items: [
+      "Canalização",
+      "Eletricidade residencial",
+      "Reparação de tomadas e interruptores",
+      "Reparação de torneiras e sanitas",
+      "Instalação de chuveiros",
+      "Reparação geral doméstica"
+    ]
+  },
+  {
+    id: "carpintaria-marcenaria",
+    title: "🪚 Carpintaria & Marcenaria",
+    description: "Serviços especializados em madeira, montagem e ajustes estruturais, com acabamento profissional e durabilidade.",
+    items: [
+      "Reparação de portas",
+      "Reparação de janelas",
+      "Montagem de móveis",
+      "Fabrico de móveis sob medida",
+      "Ajustes de fechaduras",
+      "Trabalhos em madeira"
+    ]
+  },
+  {
+    id: "construcao-obras",
+    title: "🧱 Construção & Obras",
+    description: "Serviços de construção e melhoria de espaços residenciais e comerciais, com foco em qualidade, segurança e acabamento moderno.",
+    items: [
+      "Pequenas obras",
+      "Pintura residencial",
+      "Pintura comercial",
+      "Reboco",
+      "Assentamento de azulejos",
+      "Gesso e teto falso",
+      "Impermeabilização"
+    ]
+  },
+  {
+    id: "jardinagem-exteriores",
+    title: "🌿 Jardinagem & Espaços Exteriores",
+    description: "Serviços voltados para manutenção, embelezamento e organização de áreas externas residenciais e empresariais.",
+    items: [
+      "Jardinagem residencial",
+      "Corte de relva",
+      "Manutenção de jardins",
+      "Paisagismo",
+      "Limpeza de quintais",
+      "Plantio de árvores e flores"
+    ]
+  },
+  {
+    id: "empregadas-babas",
+    title: "🧑🏾‍🍳 Empregadas Domésticas & Babás",
+    description: "Serviço premium de fornecimento de profissionais domésticas e babás verificadas, treinadas e selecionadas pela DEX Express, garantindo confiança, responsabilidade e qualidade no atendimento.",
+    items: [
+      "Empregadas domésticas internas (tempo integral)",
+      "Empregadas domésticas externas (tempo parcial)",
+      "Diaristas",
+      "Babás integrais (tempo completo)",
+      "Babás por período",
+      "Apoio infantil especializado"
+    ]
+  }
+];
+
+// Mapeamento de imagens por ID do serviço
 const SERVICE_IMAGE_MAP: Record<string, string> = {
-  // Imagem estática para DiasExpress
   diasexpress: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop",
-  
-  // GIF animado para AquaManager (monitoramento de água)
-  aquamanager: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWp4d3Z6b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0c2p0c2p0/3o7abKhOpu0ixowjeU/giphy.gif", // Exemplo - substituir por GIF real
-  
-  // Imagem estática para GastroManager
+  aquamanager: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
   gastromanager: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop",
-  
-  // GIF animado para InviteExpress (convites animados)
-  inviteexpress: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExb3Z6c3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0c2p0c2p0/26ufdipQqU2lhNA4g/giphy.gif" // Exemplo - substituir por GIF real
+  inviteexpress: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=800&auto=format&fit=crop"
 };
 
 export const SERVICES: ServiceInfo[] = [
   { 
     id: "diasexpress",
     title: "DIASEXPRESS Soluções Domésticas", 
-    description: "Serviços domésticos confiáveis: eletricistas, canalizadores e técnicos monitorados.", 
+    description: "Serviços domésticos confiáveis: eletricistas, canalizadores e técnicos monitorados. Mais de 30 categorias de serviços para sua casa e empresa.", 
     fullDescription: "Conectamos você a profissionais qualificados para manutenção residencial, garantindo segurança e o selo de qualidade DEX em cada tarefa do seu dia-a-dia.",
     color: "#FF7A00", 
     link: "/services/diasexpress",
-    image: SERVICE_IMAGE_MAP.diasexpress
+    image: SERVICE_IMAGE_MAP.diasexpress,
+    categories: DIASEXPRESS_CATEGORIES
   },
   { 
     id: "aquamanager",
@@ -83,14 +174,14 @@ export const SERVICE_IMAGES = [
     title: "Soluções Domésticas",
     service: "diasexpress",
     description: "Eletricistas e canalizadores profissionais para sua residência.",
-    isGif: false // Opcional: para identificar se é GIF
+    isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.aquamanager,
     title: "Nexus Aqua Manager",
     service: "aquamanager",
     description: "Monitoramento hídrico e faturamento inteligente com leitura via imagem.",
-    isGif: true // Este é um GIF
+    isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.gastromanager,
@@ -104,7 +195,7 @@ export const SERVICE_IMAGES = [
     title: "Convites Digitais",
     service: "inviteexpress",
     description: "Tecnologia digital para convites de eventos de todos os tipos.",
-    isGif: true // Este é um GIF
+    isGif: false
   }
 ];
 
