@@ -27,7 +27,10 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const [showUploadButton, setShowUploadButton] = useState(false);
   const { isAdmin, loading } = useAuth();
 
+  // LOGS PARA DEBUG - VERIFICAR SE O ADMIN ESTÁ SENDO RECONHECIDO
   console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅ Configurada' : '❌ Não configurada');
+  console.log('👤 isAdmin:', isAdmin);
+  console.log('👤 loading:', loading);
 
   useEffect(() => {
     setImageUrl(currentImageUrl);
@@ -71,7 +74,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !isAdmin) return;
+    if (!file) return; // Removido !isAdmin temporariamente para teste
 
     if (!file.type.startsWith('image/')) {
       setError('Por favor, selecione uma imagem válida.');
@@ -158,27 +161,13 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
     );
   }
 
-  // Versão para não-admin (apenas imagem)
-  if (!isAdmin) {
-    return (
-      <div className="relative group">
-        <div className="relative overflow-hidden rounded-[2.5rem] shadow-2xl">
-          <img 
-            src={imageUrl} 
-            alt={name}
-            className="w-full h-auto object-cover aspect-[4/5] transition-transform duration-700 group-hover:scale-110"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-dexDarkBlue via-transparent to-transparent opacity-60"></div>
-          <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-            <h3 className="text-3xl font-black tracking-tight mb-2">{name}</h3>
-            <p className="text-dexOrange font-bold text-sm uppercase tracking-widest">{role}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // POR ENQUANTO, VAMOS MOSTRAR O BOTÃO PARA QUALQUER UM (PARA TESTE)
+  // Depois que funcionar, voltamos para if (!isAdmin)
+  // if (!isAdmin) {
+  //   return ( ... )
+  // }
 
-  // Versão para admin (COM UPLOAD)
+  // VERSÃO COM BOTÃO SEMPRE VISÍVEL PARA TESTE
   return (
     <div 
       className="relative group"
@@ -208,8 +197,8 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           </div>
         )}
 
-        {/* BOTÃO DE UPLOAD - Aparece ao passar o mouse (admin) */}
-        {isAdmin && showUploadButton && !uploading && (
+        {/* BOTÃO DE UPLOAD - Aparece ao passar o mouse (QUALQUER UM POR ENQUANTO) */}
+        {showUploadButton && !uploading && (
           <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 cursor-pointer z-20">
             <div className="text-center text-white">
               <div className="w-16 h-16 bg-dexOrange rounded-full flex items-center justify-center mx-auto mb-4">
