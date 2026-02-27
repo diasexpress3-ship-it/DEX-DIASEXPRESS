@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const AdminLogin: React.FC = () => {
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,6 +14,14 @@ const AdminLogin: React.FC = () => {
   // Credenciais do admin
   const ADMIN_EMAIL = "diasexpress3@gmail.com";
   const ADMIN_PASSWORD = "Sahombe13";
+
+  // SÓ MOSTRA NA ROTA SECRETA - ALTERE AQUI PARA A ROTA QUE DESEJAR
+  const SECRET_ROUTE = '/admin-secret-2026';
+  
+  // Se não estiver na rota secreta, não renderiza nada
+  if (location.pathname !== SECRET_ROUTE) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
