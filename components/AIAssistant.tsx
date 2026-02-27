@@ -7,7 +7,7 @@ import {
   SERVICES 
 } from '../constants';
 
-// Declaração de tipos para o SpeechRecognition que não vem nativamente no TypeScript
+// Declaração de tipos para o SpeechRecognition
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -27,12 +27,17 @@ interface Message {
   isLoading?: boolean;
 }
 
+// Função para obter lista de serviços formatada
+const getServicesList = (): string => {
+  return SERVICES.map(s => `• **${s.title}**: ${s.description}`).join('\n');
+};
+
 const AIAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
-      text: `👋 Olá! Sou o assistente virtual da ${BRAND_NAME}. Meu nome é Vicente Dias, CEO e Founder da empresa. Como posso simplificar o seu dia hoje?`,
+      text: `👋 Olá! Sou o assistente virtual da ${BRAND_NAME}. Represento o fundador **Vicente Dias**. Como posso simplificar o seu dia hoje?`,
       sender: 'ai',
       timestamp: new Date()
     }
@@ -46,7 +51,6 @@ const AIAssistant: React.FC = () => {
 
   // Inicializar reconhecimento de voz
   useEffect(() => {
-    // Verificar se o navegador suporta SpeechRecognition
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
@@ -99,9 +103,86 @@ const AIAssistant: React.FC = () => {
     }
   };
 
+  // Função para detectar o tipo de pergunta
+  const detectQuestionType = (question: string): string => {
+    const q = question.toLowerCase();
+    
+    if (q.includes('serviço') || q.includes('serviços') || q.includes('oferece') || q.includes('faz')) {
+      return 'services';
+    }
+    if (q.includes('ceo') || q.includes('fundador') || q.includes('vicente') || q.includes('dias')) {
+      return 'ceo';
+    }
+    if (q.includes('contato') || q.includes('contacto') || q.includes('whatsapp') || q.includes('email')) {
+      return 'contact';
+    }
+    if (q.includes('preço') || q.includes('precos') || q.includes('custo') || q.includes('valor')) {
+      return 'pricing';
+    }
+    return 'general';
+  };
+
+  // Respostas rápidas para perguntas comuns (fallback)
+  const getQuickResponse = (question: string): string => {
+    const type = detectQuestionType(question);
+    
+    switch(type) {
+      case 'services':
+        return `📋 **Nossos Serviços:**
+
+${getServicesList()}
+
+Todos os nossos serviços operam em Moçambique com a qualidade e inovação DEX. Posso dar mais detalhes sobre algum específico?`;
+      
+      case 'ceo':
+        return `👔 **Sobre a Liderança:**
+
+O **Vicente Dias** é o CEO e Fundador da ${BRAND_NAME}, liderando a inovação digital em Moçambique desde a fundação da empresa.
+
+📍 **Localização:** Maputo, Moçambique
+💼 **Missão:** Digitalizar serviços e processos em Moçambique
+
+Posso ajudar com mais informações sobre a empresa?`;
+      
+      case 'contact':
+        return `📱 **Canais de Contato:**
+
+**WhatsApp:** ${COMPANY_WHATSAPP}
+**Email:** ${COMPANY_EMAIL}
+
+👔 **CEO & Founder:** Vicente Dias
+📍 **Localização:** Maputo, Moçambique
+
+Estamos prontos para atender você!`;
+      
+      case 'pricing':
+        return `💰 **Informações de Preços:**
+
+Os preços dos nossos serviços são personalizados de acordo com cada necessidade. Para um orçamento específico, entre em contato:
+
+📱 **WhatsApp:** ${COMPANY_WHATSAPP}
+📧 **Email:** ${COMPANY_EMAIL}
+
+Um representante DEX responderá em breve!`;
+      
+      default:
+        return `Olá! Sou o assistente da DEX. Aqui estão as principais informações:
+
+👔 **CEO & Founder:** Vicente Dias
+📍 **Localização:** Maputo, Moçambique
+
+📋 **Serviços:**
+${getServicesList().split('\n').slice(0, 2).join('\n')}...
+
+📱 **Contato:** ${COMPANY_WHATSAPP} | ${COMPANY_EMAIL}
+
+Sobre o que gostaria de saber mais?`;
+    }
+  };
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim() || isLoading || !genAI) return;
+    if (!inputMessage.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -124,6 +205,25 @@ const AIAssistant: React.FC = () => {
     }]);
 
     try {
+      // Se não tem API Key ou se queremos usar respostas rápidas para testes
+      if (!genAI) {
+        // Usar respostas rápidas
+        setTimeout(() => {
+          setMessages(prev => prev.filter(msg => msg.id !== loadingId));
+          
+          const response = getQuickResponse(inputMessage);
+          
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 2).toString(),
+            text: response,
+            sender: 'ai',
+            timestamp: new Date()
+          }]);
+          setIsLoading(false);
+        }, 1000);
+        return;
+      }
+
       // Informações completas sobre a empresa
       const companyInfo = `
 EMPRESA: ${BRAND_NAME}
@@ -133,15 +233,10 @@ EMAIL: ${COMPANY_EMAIL}
 WHATSAPP: ${COMPANY_WHATSAPP}
 
 SERVIÇOS OFERECIDOS:
-1. DIASEXPRESS Soluções Domésticas: Serviços de eletricistas, canalizadores e técnicos monitorados. Link: /services/diasexpress
-2. Nexus Aqua Manager: Gestão inteligente de consumo de água via imagens e monitoramento real-time. Link: /aquamanager
-3. DEX GastroManager: Gestão de inventário e vendas para bares e restaurantes. Link: /gastromanager
-4. InviteExpress: Convites digitais inteligentes para eventos. Link: /inviteexpress
+${SERVICES.map(s => `- ${s.title}: ${s.description}`).join('\n')}
 
-INFORMAÇÕES ADICIONAIS:
-- Todos os serviços operam em Moçambique
-- A empresa foca em soluções digitais inovadoras
-- Parcerias estratégicas estão abertas para diversos setores
+LINKS DOS SERVIÇOS:
+${SERVICES.map(s => `- ${s.title}: ${s.link}`).join('\n')}
 `;
 
       const fullPrompt = `Você é o assistente virtual oficial da ${BRAND_NAME}, representando o fundador Vicente Dias.
@@ -150,63 +245,51 @@ INFORMAÇÕES OFICIAIS DA EMPRESA (USE SEMPRE ESTAS INFORMAÇÕES):
 ${companyInfo}
 
 REGRAS IMPORTANTES:
-1. SEMPRE se apresente como assistente da DEX, mencionando que Vicente Dias é o fundador
+1. SEMPRE inclua informações sobre os serviços quando perguntado
 2. Se perguntarem sobre o CEO, diga que é Vicente Dias, fundador da empresa em Maputo
-3. Se perguntarem sobre serviços, liste TODOS os 4 serviços com suas descrições
-4. NUNCA diga que tem dificuldades técnicas - você SABE todas as informações acima
-5. Se perguntarem sobre preços, diga que são personalizados e peça contato via WhatsApp
-6. Se perguntarem sobre contato, forneça email e WhatsApp
-7. Responda em português de Moçambique, tom profissional e amigável
+3. Se perguntarem sobre serviços, liste TODOS os serviços com suas descrições
+4. Se perguntarem sobre preços, diga que são personalizados e peça contato via WhatsApp
+5. Se perguntarem sobre contato, forneça email e WhatsApp
+6. Responda em português de Moçambique, tom profissional e amigável
 
 PERGUNTA DO CLIENTE: ${inputMessage}
 
-SUA RESPOSTA (seja direto e útil, máximo 4 parágrafos):`;
+SUA RESPOSTA (seja direto e útil, inclua emojis apropriados):`;
 
       const response = await genAI.models.generateContent({
         model: "gemini-2.0-flash-exp",
         contents: fullPrompt,
         config: {
           temperature: 0.3,
-          maxOutputTokens: 400,
+          maxOutputTokens: 500,
         }
       });
 
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));
 
-      const aiResponse = response.text || "Desculpe, não consegui processar. Aqui está meu contato direto: sou Vicente Dias, fundador da DEX. Pode me contactar pelo email ou WhatsApp.";
+      const aiResponse = response.text || getQuickResponse(inputMessage);
 
-      const aiMessage: Message = {
+      setMessages(prev => [...prev, {
         id: (Date.now() + 2).toString(),
         text: aiResponse,
         sender: 'ai',
         timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
+      }]);
 
     } catch (error) {
       console.error('Error calling AI:', error);
       
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));
       
-      // Fallback com informações corretas
-      const errorMessage: Message = {
+      // Fallback com respostas rápidas baseadas no tipo de pergunta
+      const fallbackResponse = getQuickResponse(inputMessage);
+      
+      setMessages(prev => [...prev, {
         id: (Date.now() + 2).toString(),
-        text: `Olá! Sou o assistente da DEX. Aqui estão as informações que você precisa:
-
-👔 **CEO & Founder:** Vicente Dias
-📍 **Localização:** Maputo, Moçambique
-
-📱 **Contato direto:** 
-- WhatsApp: ${COMPANY_WHATSAPP}
-- Email: ${COMPANY_EMAIL}
-
-Como posso ajudar mais?`,
+        text: fallbackResponse,
         sender: 'ai',
         timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, errorMessage]);
+      }]);
     } finally {
       setIsLoading(false);
     }
@@ -216,7 +299,8 @@ Como posso ajudar mais?`,
     const actions: Record<string, string> = {
       ceo: "Quem é o CEO da DEX?",
       servicos: "Quais são os serviços da DEX?",
-      contato: "Como posso entrar em contato?"
+      contato: "Como posso entrar em contato?",
+      precos: "Quanto custam os serviços?"
     };
     
     setInputMessage(actions[action] || action);
@@ -287,13 +371,19 @@ Como posso ajudar mais?`,
                 onClick={() => handleQuickAction('ceo')}
                 className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
               >
-                👔 Quem é o CEO?
+                👔 CEO
               </button>
               <button 
                 onClick={() => handleQuickAction('servicos')}
                 className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
               >
                 📋 Serviços
+              </button>
+              <button 
+                onClick={() => handleQuickAction('precos')}
+                className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
+              >
+                💰 Preços
               </button>
               <button 
                 onClick={() => handleQuickAction('contato')}
@@ -315,7 +405,7 @@ Como posso ajudar mais?`,
                   onChange={(e) => setInputMessage(e.target.value)}
                   placeholder="Digite sua mensagem..."
                   className="w-full px-4 py-3 pr-12 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-dexBlue focus:border-transparent"
-                  disabled={isLoading || !genAI}
+                  disabled={isLoading}
                 />
                 {recognitionRef.current && (
                   <button
@@ -333,7 +423,7 @@ Como posso ajudar mais?`,
               </div>
               <button
                 type="submit"
-                disabled={isLoading || !inputMessage.trim() || !genAI}
+                disabled={isLoading || !inputMessage.trim()}
                 className="px-4 py-3 bg-dexOrange text-white rounded-xl hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
