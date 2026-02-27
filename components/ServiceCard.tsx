@@ -1,19 +1,24 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ServiceInfo } from "../types";
 
-interface ServiceCardProps extends ServiceInfo {
+interface ServiceCardProps {
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  link: string;
   index?: number;
-  backgroundImage?: string; // Nova prop para imagem de fundo
+  backgroundImage?: string;
 }
 
 const ServiceCard: React.FC<ServiceCardProps> = ({ 
+  id,
   title, 
   description, 
   color, 
   link, 
   index = 0,
-  backgroundImage // Nova prop
+  backgroundImage
 }) => {
   return (
     <div 
@@ -67,4 +72,3 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
 };
 
 export default ServiceCard;
-
