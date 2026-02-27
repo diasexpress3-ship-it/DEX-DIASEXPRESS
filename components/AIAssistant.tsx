@@ -4,6 +4,7 @@ import {
   BRAND_NAME, 
   COMPANY_EMAIL, 
   COMPANY_WHATSAPP,
+  COMPANY_PHONE,
   SERVICES,
   DIASEXPRESS_CATEGORIES 
 } from '../constants';
@@ -115,21 +116,39 @@ const AIAssistant: React.FC = () => {
   const detectQuestionType = (question: string): string => {
     const q = question.toLowerCase();
     
+    // Detectar perguntas sobre categorias (prioridade alta)
+    if (q.includes('categoria') || q.includes('categorias') || q.includes('doméstico') || 
+        q.includes('limpeza') || q.includes('manutenção') || q.includes('jardinagem') ||
+        q.includes('babás') || q.includes('empregadas') || q.includes('reparação') ||
+        q.includes('canalização') || q.includes('eletricidade') || q.includes('pintura') ||
+        q.includes('construção') || q.includes('obras') || q.includes('carpintaria') ||
+        q.includes('marcenaria')) {
+      return 'categories';
+    }
+    
+    // Detectar perguntas sobre serviços em geral
     if (q.includes('serviço') || q.includes('serviços') || q.includes('oferece') || q.includes('faz')) {
       return 'services';
     }
-    if (q.includes('ceo') || q.includes('fundador') || q.includes('vicente') || q.includes('dias')) {
+    
+    // Detectar perguntas sobre o CEO/fundador
+    if (q.includes('ceo') || q.includes('fundador') || q.includes('vicente') || q.includes('dias') || 
+        q.includes('quem é o chefe') || q.includes('quem criou')) {
       return 'ceo';
     }
-    if (q.includes('contato') || q.includes('contacto') || q.includes('whatsapp') || q.includes('email') || q.includes('telefone')) {
+    
+    // Detectar perguntas sobre contato
+    if (q.includes('contato') || q.includes('contacto') || q.includes('whatsapp') || 
+        q.includes('email') || q.includes('telefone') || q.includes('falar com')) {
       return 'contact';
     }
-    if (q.includes('preço') || q.includes('precos') || q.includes('custo') || q.includes('valor') || q.includes('quanto custa')) {
+    
+    // Detectar perguntas sobre preços
+    if (q.includes('preço') || q.includes('precos') || q.includes('custo') || 
+        q.includes('valor') || q.includes('quanto custa') || q.includes('orçamento')) {
       return 'pricing';
     }
-    if (q.includes('categoria') || q.includes('categorias') || q.includes('doméstico') || q.includes('limpeza') || q.includes('manutenção')) {
-      return 'categories';
-    }
+    
     return 'general';
   };
 
@@ -145,14 +164,19 @@ ${getServicesList()}
 
 💡 **Destaque:** A DIASEXPRESS Soluções Domésticas oferece mais de 30 categorias de serviços, incluindo limpeza, manutenção, jardinagem, babás e muito mais!
 
-Todos os nossos serviços operam em Moçambique com a qualidade e inovação DEX. Posso dar mais detalhes sobre algum específico?`;
+Todos os nossos serviços operam em Moçambique com a qualidade e inovação DEX. Posso detalhar alguma categoria específica?`;
       
       case 'categories':
-        return `🏠 **Categorias da DIASEXPRESS Soluções Domésticas:**
+        return `🏠 **Categorias da DIASEXPRESS Soluções Domésticas (mais de 30 serviços):**
 
 ${getDiasexpressCategories()}
 
-📱 Para solicitar qualquer um destes serviços, entre em contato pelo WhatsApp: ${COMPANY_WHATSAPP}`;
+📱 **Para solicitar qualquer serviço, entre em contato:**
+• WhatsApp: ${COMPANY_WHATSAPP}
+• Email: ${COMPANY_EMAIL}
+• Telefone: ${COMPANY_PHONE}
+
+Posso ajudar com mais detalhes sobre alguma categoria específica?`;
       
       case 'ceo':
         return `👔 **Sobre a Liderança:**
@@ -161,18 +185,21 @@ O **Vicente Dias** é o CEO e Fundador da ${BRAND_NAME}, liderando a inovação 
 
 📍 **Localização:** Maputo, Moçambique
 💼 **Missão:** Digitalizar serviços e processos em Moçambique
+📱 **Contato direto:** ${COMPANY_WHATSAPP}
 
-Posso ajudar com mais informações sobre a empresa?`;
+Posso ajudar com mais informações sobre a empresa ou nossos serviços?`;
       
       case 'contact':
         return `📱 **Canais de Contato:**
 
 **WhatsApp:** ${COMPANY_WHATSAPP}
 **Email:** ${COMPANY_EMAIL}
-**Telefone:** +258 87 142 5316
+**Telefone:** ${COMPANY_PHONE}
 
 👔 **CEO & Founder:** Vicente Dias
 📍 **Localização:** Maputo, Moçambique
+
+⏰ **Horário de atendimento:** Segunda a Sexta, 8h às 18h
 
 Estamos prontos para atender você!`;
       
@@ -183,9 +210,9 @@ Os preços dos nossos serviços são personalizados de acordo com cada necessida
 
 📱 **WhatsApp:** ${COMPANY_WHATSAPP}
 📧 **Email:** ${COMPANY_EMAIL}
-📞 **Telefone:** +258 87 142 5316
+📞 **Telefone:** ${COMPANY_PHONE}
 
-Um representante DEX responderá em breve com uma proposta personalizada!`;
+Um representante DEX responderá em breve com uma proposta personalizada para o seu caso!`;
       
       default:
         return `Olá! Sou o assistente da DEX. Aqui estão as principais informações:
@@ -196,9 +223,11 @@ Um representante DEX responderá em breve com uma proposta personalizada!`;
 📋 **Principais Serviços:**
 ${getServicesList().split('\n').slice(0, 2).join('\n')}...
 
+🏠 **DIASEXPRESS:** Mais de 30 categorias de serviços domésticos
+
 📱 **Contato:** ${COMPANY_WHATSAPP} | ${COMPANY_EMAIL}
 
-Sobre o que gostaria de saber mais?`;
+Sobre o que gostaria de saber mais? Posso ajudar com serviços, categorias, preços ou contato.`;
     }
   };
 
@@ -227,9 +256,8 @@ Sobre o que gostaria de saber mais?`;
     }]);
 
     try {
-      // Se não tem API Key ou se queremos usar respostas rápidas para testes
+      // Se não tem API Key, usar respostas rápidas
       if (!genAI) {
-        // Usar respostas rápidas
         setTimeout(() => {
           setMessages(prev => prev.filter(msg => msg.id !== loadingId));
           
@@ -253,7 +281,7 @@ FUNDADOR E CEO: Vicente Dias
 LOCALIZAÇÃO: Maputo, Moçambique
 EMAIL: ${COMPANY_EMAIL}
 WHATSAPP: ${COMPANY_WHATSAPP}
-TELEFONE: +258 87 142 5316
+TELEFONE: ${COMPANY_PHONE}
 
 SERVIÇOS OFERECIDOS:
 ${SERVICES.map(s => `- ${s.title}: ${s.description}`).join('\n')}
@@ -273,18 +301,19 @@ INFORMAÇÕES OFICIAIS DA EMPRESA (USE SEMPRE ESTAS INFORMAÇÕES):
 ${companyInfo}
 
 REGRAS IMPORTANTES:
-1. SEMPRE inclua informações sobre os serviços quando perguntado
-2. Se perguntarem sobre o CEO, diga que é Vicente Dias, fundador da empresa em Maputo
-3. Se perguntarem sobre serviços, liste TODOS os serviços com suas descrições
-4. Se perguntarem sobre preços, diga que são personalizados e forneça os contatos da empresa
-5. Se perguntarem sobre contato, forneça WhatsApp, email e telefone
-6. Se perguntarem sobre categorias específicas, detalhe os serviços disponíveis
+1. SEMPRE se apresente como assistente da DEX, mencionando que Vicente Dias é o fundador
+2. Se perguntarem sobre categorias, liste TODAS as categorias da DIASEXPRESS com seus serviços
+3. Se perguntarem sobre o CEO, diga que é Vicente Dias, fundador da empresa em Maputo
+4. Se perguntarem sobre serviços, liste todos os serviços com suas descrições
+5. Se perguntarem sobre preços, diga que são personalizados e forneça os contatos da empresa
+6. Se perguntarem sobre contato, forneça WhatsApp, email e telefone
 7. Responda em português de Moçambique, tom profissional e amigável
 8. SEMPRE inclua os contatos da empresa em respostas sobre preços
+9. Para a DIASEXPRESS, mencione que são mais de 30 categorias de serviços
 
 PERGUNTA DO CLIENTE: ${inputMessage}
 
-SUA RESPOSTA (seja direto e útil, inclua emojis apropriados):`;
+SUA RESPOSTA (seja direto e útil, inclua emojis apropriados, máximo 4 parágrafos):`;
 
       const response = await genAI.models.generateContent({
         model: "gemini-2.0-flash-exp",
