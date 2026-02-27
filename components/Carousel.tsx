@@ -5,12 +5,22 @@ import { db } from '../services/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import "./carousel.css";
 
+// Definir o tipo do serviço baseado no SERVICES
+interface ServiceType {
+  id: string;
+  title: string;
+  description: string;
+  color: string;
+  link: string;
+  image: string;
+}
+
 const Carousel: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [contentWidth, setContentWidth] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [serviceImages, setServiceImages] = useState<Record<number, string>>({});
+  const [serviceImages, setServiceImages] = useState<Record<string, string>>({});
 
   // Carregar imagens salvas do Firestore
   useEffect(() => {
@@ -21,11 +31,11 @@ const Carousel: React.FC = () => {
         
         if (docSnap.exists()) {
           const data = docSnap.data();
-          const images: Record<number, string> = {};
+          const images: Record<string, string> = {};
           
           Object.keys(data).forEach(key => {
             if (key.startsWith('service_')) {
-              const serviceId = parseInt(key.replace('service_', ''));
+              const serviceId = key.replace('service_', '');
               images[serviceId] = data[key];
             }
           });
@@ -34,8 +44,8 @@ const Carousel: React.FC = () => {
           console.log('✅ Imagens dos serviços carregadas do Firestore');
         } else {
           // Fallback para localStorage
-          const savedImages: Record<number, string> = {};
-          SERVICES.forEach(service => {
+          const savedImages: Record<string, string> = {};
+          SERVICES.forEach((service: ServiceType) => {
             const local = localStorage.getItem(`service_${service.id}_image`);
             if (local) savedImages[service.id] = local;
           });
@@ -44,8 +54,8 @@ const Carousel: React.FC = () => {
       } catch (error) {
         console.error('Erro ao carregar imagens:', error);
         // Fallback para localStorage
-        const savedImages: Record<number, string> = {};
-        SERVICES.forEach(service => {
+        const savedImages: Record<string, string> = {};
+        SERVICES.forEach((service: ServiceType) => {
           const local = localStorage.getItem(`service_${service.id}_image`);
           if (local) savedImages[service.id] = local;
         });
@@ -57,7 +67,7 @@ const Carousel: React.FC = () => {
   }, []);
 
   // Triple duplication for perfect seamless looping
-  const carouselItems = [...SERVICES, ...SERVICES, ...SERVICES];
+  const carouselItems: ServiceType[] = [...SERVICES, ...SERVICES, ...SERVICES];
 
   useEffect(() => {
     const calculateWidth = () => {
@@ -113,12 +123,12 @@ const Carousel: React.FC = () => {
     return () => cancelAnimationFrame(animationFrameId);
   }, [isPaused, contentWidth, isInitialized]);
 
-  const handleImageUpdate = (serviceId: number, newUrl: string) => {
+  const handleImageUpdate = (serviceId: string, newUrl: string) => {
     setServiceImages(prev => ({ ...prev, [serviceId]: newUrl }));
   };
 
   // Função para obter a imagem de um serviço
-  const getServiceImage = (service: typeof SERVICES[0]) => {
+  const getServiceImage = (service: ServiceType): string => {
     return serviceImages[service.id] || service.image;
   };
 
