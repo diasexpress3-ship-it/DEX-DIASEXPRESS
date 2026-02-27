@@ -10,18 +10,22 @@ const About: React.FC = () => {
   const [founderImage, setFounderImage] = useState(DEFAULT_FOUNDER_IMAGE);
   const [loading, setLoading] = useState(true);
 
+  // Carregar imagem salva ao iniciar (primeiro do Firestore, depois localStorage)
   useEffect(() => {
     const loadImage = async () => {
       try {
+        // Primeiro tenta buscar do Firestore (para todos os usuários)
         const docRef = doc(db, 'config', 'founderImage');
         const docSnap = await getDoc(docRef);
         
         if (docSnap.exists()) {
           const firestoreUrl = docSnap.data().url;
           setFounderImage(firestoreUrl);
+          // Atualiza localStorage como backup
           localStorage.setItem('founderImage', firestoreUrl);
           console.log('✅ Imagem carregada do Firestore:', firestoreUrl);
         } else {
+          // Se não tiver no Firestore, tenta o localStorage
           const savedImage = localStorage.getItem('founderImage');
           if (savedImage) {
             setFounderImage(savedImage);
@@ -30,6 +34,7 @@ const About: React.FC = () => {
         }
       } catch (error) {
         console.error('Erro ao carregar imagem do Firestore:', error);
+        // Fallback para localStorage
         const savedImage = localStorage.getItem('founderImage');
         if (savedImage) {
           setFounderImage(savedImage);
@@ -44,8 +49,11 @@ const About: React.FC = () => {
 
   const handleImageUpdate = (newUrl: string) => {
     setFounderImage(newUrl);
+    console.log('🖼️ Imagem atualizada no About:', newUrl);
+    // A imagem já é salva no Firestore pelo componente TeamImageUpload
   };
 
+  // Se estiver carregando, mostra um skeleton sutil (mantém o design)
   if (loading) {
     return (
       <div className="bg-white min-h-screen">
@@ -84,6 +92,7 @@ const About: React.FC = () => {
       {/* Intro & Leadership Section */}
       <div className="container mx-auto py-24 px-6 max-w-7xl">
         <div className="grid lg:grid-cols-2 gap-20 items-center mb-32">
+          {/* Texto da esquerda */}
           <div className="animate-fadeIn">
             <h2 className="text-4xl font-black text-dexDarkBlue mb-8 tracking-tighter uppercase">
               Inovação em Moçambique
@@ -112,7 +121,7 @@ const About: React.FC = () => {
             </div>
           </div>
 
-          {/* COMPONENTE DE UPLOAD DO CEO */}
+          {/* Imagem do Founder com Upload */}
           <TeamImageUpload 
             currentImageUrl={founderImage}
             name="Vicente Dias"
@@ -121,7 +130,7 @@ const About: React.FC = () => {
           />
         </div>
 
-        {/* Quadros de Valores */}
+        {/* Quadros de Valores (AGILIDADE, INOVAÇÃO, QUALIDADE, FOCO) COM ANIMAÇÕES SEQUENCIAIS */}
         <div className="mb-32">
           <div className="text-center mb-16">
             <span className="text-dexBlue font-black text-[10px] uppercase tracking-[0.5em] mb-4 block">
@@ -133,6 +142,7 @@ const About: React.FC = () => {
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {/* Agilidade - Animação up-down */}
             <div className="bg-gradient-to-br from-dexBlue to-blue-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-up-down group">
               <span className="text-3xl font-black tracking-tighter mb-2">Agilidade</span>
               <p className="text-sm font-bold uppercase tracking-widest text-blue-200 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -140,6 +150,7 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* Inovação - Animação left-right (delay 1s) */}
             <div className="bg-gradient-to-br from-dexOrange to-orange-600 h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-left-right animation-delay-1000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Inovação</span>
               <p className="text-sm font-bold uppercase tracking-widest text-orange-200 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -147,6 +158,7 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* Qualidade - Animação up-down (delay 2s) */}
             <div className="bg-gradient-to-br from-dexGreen to-green-700 h-64 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-up-down animation-delay-2000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Qualidade</span>
               <p className="text-sm font-bold uppercase tracking-widest text-green-200 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -154,6 +166,7 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* Foco - Animação combinada (delay 3s) */}
             <div className="bg-gradient-to-br from-dexDarkBlue to-black h-72 rounded-[2.5rem] flex flex-col justify-end p-8 text-white shadow-xl animate-float-combined animation-delay-3000 group">
               <span className="text-3xl font-black tracking-tighter mb-2">Foco</span>
               <p className="text-sm font-bold uppercase tracking-widest text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -163,7 +176,7 @@ const About: React.FC = () => {
           </div>
         </div>
 
-        {/* Serviços - DiasExpress */}
+        {/* Serviços - DiasExpress (mantido exatamente igual) */}
         <div className="mb-32">
           <div className="grid md:grid-cols-2 gap-8 mb-16">
             <div className="bg-gray-50 p-10 rounded-[3rem] border border-gray-100 hover:shadow-xl transition-all group">
@@ -254,6 +267,7 @@ const About: React.FC = () => {
 
           {/* Segunda linha de serviços */}
           <div className="grid md:grid-cols-2 gap-8">
+            {/* AquaManager */}
             <div className="bg-gray-50 p-10 rounded-[3rem] border border-gray-100 hover:shadow-xl transition-all group">
               <div className="w-20 h-20 bg-sky-500 text-white rounded-3xl flex items-center justify-center mb-8 shadow-lg">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,6 +299,7 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* GastroManager */}
             <div className="bg-gray-50 p-10 rounded-[3rem] border border-gray-100 hover:shadow-xl transition-all group">
               <div className="w-20 h-20 bg-dexDarkBlue text-white rounded-3xl flex items-center justify-center mb-8 shadow-lg">
                 <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -322,6 +337,7 @@ const About: React.FC = () => {
         <div className="bg-dexDarkBlue rounded-[4rem] p-16 md:p-24 text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-dexOrange opacity-10 rounded-full -mr-20 -mt-20"></div>
           <div className="grid md:grid-cols-3 gap-12 relative z-10">
+            {/* Missão */}
             <div className="text-center md:text-left">
               <h4 className="text-dexOrange font-black text-xs uppercase tracking-[0.4em] mb-6">🎯 Missão</h4>
               <p className="text-lg font-light leading-relaxed">
@@ -330,6 +346,7 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* Visão */}
             <div className="text-center md:text-left">
               <h4 className="text-dexOrange font-black text-xs uppercase tracking-[0.4em] mb-6">👁 Visão</h4>
               <p className="text-lg font-light leading-relaxed">
@@ -337,20 +354,37 @@ const About: React.FC = () => {
               </p>
             </div>
 
+            {/* Valores */}
             <div className="text-center md:text-left">
               <h4 className="text-dexOrange font-black text-xs uppercase tracking-[0.4em] mb-6">🔐 Valores</h4>
               <ul className="space-y-2 text-lg font-light">
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>Inovação contínua</li>
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>Transparência</li>
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>Segurança</li>
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>Impacto social</li>
-                <li className="flex items-center gap-2"><span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>Excelência operacional</li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>
+                  Inovação contínua
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>
+                  Transparência
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>
+                  Segurança
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>
+                  Impacto social
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-dexOrange rounded-full"></span>
+                  Excelência operacional
+                </li>
               </ul>
             </div>
           </div>
         </div>
       </div>
       
+      {/* Footer Section */}
       <div className="bg-gray-50 py-24">
         <div className="container mx-auto px-6 text-center">
           <h3 className="text-2xl font-black text-dexDarkBlue mb-4 tracking-tight uppercase">
