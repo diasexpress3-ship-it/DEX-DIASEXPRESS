@@ -1,16 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI } from "@google/genai";
 import { 
-  AI_SYSTEM_INSTRUCTION, 
   BRAND_NAME, 
   COMPANY_EMAIL, 
   COMPANY_WHATSAPP,
-  SERVICES,
-  SERVICE_IMAGES,
-  PARTNERS 
+  SERVICES 
 } from '../constants';
 
-// Initialize the Google AI client with your API key
+// Initialize the Google AI client
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_KEY;
 const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
 
@@ -22,45 +19,47 @@ interface Message {
   isLoading?: boolean;
 }
 
-// Função para buscar informações contextuais dos serviços
-const getServiceInfo = (query: string): string => {
-  const serviceInfo = SERVICES.map(s => 
-    `- ${s.title}: ${s.description} (Mais informações: ${s.link})`
-  ).join('\n');
-  
-  const partnerInfo = PARTNERS.map(p => 
-    `- ${p.name}: ${p.description}`
-  ).join('\n');
-  
-  return `
-Informações disponíveis sobre a DEX:
-
-SERVIÇOS:
-${serviceInfo}
-
-PARCEIROS ESTRATÉGICOS:
-${partnerInfo}
-
-CONTATOS:
-- Email: ${COMPANY_EMAIL}
-- WhatsApp: ${COMPANY_WHATSAPP}
-`;
-};
-
 const AIAssistant: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
-      text: `Olá! Sou o assistente virtual da ${BRAND_NAME}. Como posso simplificar o seu dia hoje? Posso ajudar com informações sobre nossos serviços, parcerias, orçamentos ou qualquer outra dúvida.`,
+      text: `👋 Olá! Sou o assistente virtual da ${BRAND_NAME}. Meu nome é Vicente Dias, CEO e Founder da empresa. Como posso simplificar o seu dia hoje?`,
       sender: 'ai',
       timestamp: new Date()
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Inicializar reconhecimento de voz
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = 'pt-PT';
+
+      recognitionRef.current.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInputMessage(transcript);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onerror = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    }
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -75,6 +74,21 @@ const AIAssistant: React.FC = () => {
       inputRef.current.focus();
     }
   }, [isOpen]);
+
+  const handleVoiceInput = () => {
+    if (!recognitionRef.current) {
+      alert('Seu navegador não suporta reconhecimento de voz. Tente Chrome, Edge ou Safari.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      setInputMessage('');
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,7 +105,6 @@ const AIAssistant: React.FC = () => {
     setInputMessage('');
     setIsLoading(true);
 
-    // Adicionar mensagem de loading
     const loadingId = (Date.now() + 1).toString();
     setMessages(prev => [...prev, {
       id: loadingId,
@@ -102,42 +115,56 @@ const AIAssistant: React.FC = () => {
     }]);
 
     try {
-      // Construir contexto com informações da empresa
-      const contextInfo = getServiceInfo(inputMessage);
-      
-      // Preparar o prompt com contexto
-      const fullPrompt = `${AI_SYSTEM_INSTRUCTION}
+      // Informações completas sobre a empresa
+      const companyInfo = `
+EMPRESA: ${BRAND_NAME}
+FUNDADOR E CEO: Vicente Dias
+LOCALIZAÇÃO: Maputo, Moçambique
+EMAIL: ${COMPANY_EMAIL}
+WHATSAPP: ${COMPANY_WHATSAPP}
 
-CONTEXTO ATUAL DA EMPRESA:
-${contextInfo}
+SERVIÇOS OFERECIDOS:
+1. DIASEXPRESS Soluções Domésticas: Serviços de eletricistas, canalizadores e técnicos monitorados. Link: /services/diasexpress
+2. Nexus Aqua Manager: Gestão inteligente de consumo de água via imagens e monitoramento real-time. Link: /aquamanager
+3. DEX GastroManager: Gestão de inventário e vendas para bares e restaurantes. Link: /gastromanager
+4. InviteExpress: Convites digitais inteligentes para eventos. Link: /inviteexpress
 
-HISTÓRICO DA CONVERSA:
-${messages.map(msg => `${msg.sender === 'user' ? 'Cliente' : 'Assistente'}: ${msg.text}`).join('\n')}
+INFORMAÇÕES ADICIONAIS:
+- Todos os serviços operam em Moçambique
+- A empresa foca em soluções digitais inovadoras
+- Parcerias estratégicas estão abertas para diversos setores
+`;
+
+      const fullPrompt = `Você é o assistente virtual oficial da ${BRAND_NAME}, representando o fundador Vicente Dias.
+
+INFORMAÇÕES OFICIAIS DA EMPRESA (USE SEMPRE ESTAS INFORMAÇÕES):
+${companyInfo}
+
+REGRAS IMPORTANTES:
+1. SEMPRE se apresente como assistente da DEX, mencionando que Vicente Dias é o fundador
+2. Se perguntarem sobre o CEO, diga que é Vicente Dias, fundador da empresa em Maputo
+3. Se perguntarem sobre serviços, liste TODOS os 4 serviços com suas descrições
+4. NUNCA diga que tem dificuldades técnicas - você SABE todas as informações acima
+5. Se perguntarem sobre preços, diga que são personalizados e peça contato via WhatsApp
+6. Se perguntarem sobre contato, forneça email e WhatsApp
+7. Responda em português de Moçambique, tom profissional e amigável
 
 PERGUNTA DO CLIENTE: ${inputMessage}
 
-INSTRUÇÕES ADICIONAIS:
-- Se perguntarem sobre preços, informe que são personalizados e peça para entrar em contato via WhatsApp
-- Se perguntarem sobre parcerias, ofereça informações sobre nosso programa de parceiros
-- Se perguntarem sobre serviços específicos, forneça detalhes e o link para mais informações
-- Sempre mantenha um tom profissional, amigável e focado em soluções
-- Se não souber responder, encaminhe para o email ou WhatsApp
-
-RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
+SUA RESPOSTA (seja direto e útil, máximo 4 parágrafos):`;
 
       const response = await genAI.models.generateContent({
         model: "gemini-2.0-flash-exp",
         contents: fullPrompt,
         config: {
-          temperature: 0.7,
-          maxOutputTokens: 300,
+          temperature: 0.3, // Mais baixo para respostas consistentes
+          maxOutputTokens: 400,
         }
       });
 
-      // Remover mensagem de loading
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));
 
-      const aiResponse = response.text || "Desculpe, não consegui processar sua solicitação. Por favor, tente novamente ou entre em contato pelo WhatsApp.";
+      const aiResponse = response.text || "Desculpe, não consegui processar. Aqui está meu contato direto: sou Vicente Dias, fundador da DEX. Pode me contactar pelo email ou WhatsApp.";
 
       const aiMessage: Message = {
         id: (Date.now() + 2).toString(),
@@ -148,31 +175,46 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
 
       setMessages(prev => [...prev, aiMessage]);
 
-      // Se a pergunta for sobre contato, oferecer opções rápidas
-      if (inputMessage.toLowerCase().includes('whatsapp') || 
-          inputMessage.toLowerCase().includes('contato') ||
-          inputMessage.toLowerCase().includes('email')) {
+      // Se a pergunta for sobre o fundador, reforçar a resposta
+      if (inputMessage.toLowerCase().includes('ceo') || 
+          inputMessage.toLowerCase().includes('fundador') ||
+          inputMessage.toLowerCase().includes('vicente')) {
         
         setTimeout(() => {
-          const contactMessage: Message = {
+          const founderMessage: Message = {
             id: (Date.now() + 3).toString(),
-            text: `📱 WhatsApp: ${COMPANY_WHATSAPP}\n📧 Email: ${COMPANY_EMAIL}\n\nClique no número para copiar ou enviar mensagem!`,
+            text: `👔 Reforçando: Vicente Dias é o CEO e Founder da ${BRAND_NAME}, liderando a inovação digital em Moçambique desde a fundação da empresa.`,
             sender: 'ai',
             timestamp: new Date()
           };
-          setMessages(prev => [...prev, contactMessage]);
+          setMessages(prev => [...prev, founderMessage]);
         }, 500);
       }
 
     } catch (error) {
       console.error('Error calling AI:', error);
       
-      // Remover mensagem de loading
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));
       
+      // Fallback com informações corretas
       const errorMessage: Message = {
         id: (Date.now() + 2).toString(),
-        text: `Desculpe, estou com dificuldades técnicas no momento. Por favor, entre em contato diretamente:\n\n📱 WhatsApp: ${COMPANY_WHATSAPP}\n📧 Email: ${COMPANY_EMAIL}`,
+        text: `Olá! Sou o assistente da DEX. Aqui estão as informações que você precisa:
+
+👔 **CEO & Founder:** Vicente Dias
+📍 **Localização:** Maputo, Moçambique
+
+📱 **Contato direto:** 
+- WhatsApp: ${COMPANY_WHATSAPP}
+- Email: ${COMPANY_EMAIL}
+
+💼 **Nossos serviços:**
+- DIASEXPRESS: Soluções domésticas
+- AquaManager: Gestão de água
+- GastroManager: Gestão para restaurantes
+- InviteExpress: Convites digitais
+
+Como posso ajudar mais?`,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -185,14 +227,12 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
 
   const handleQuickAction = (action: string) => {
     const actions: Record<string, string> = {
-      servicos: "Quais são os serviços oferecidos pela DEX?",
-      precos: "Gostaria de saber sobre os preços dos serviços",
-      parcerias: "Como posso me tornar um parceiro DEX?",
-      contato: "Quais são os canais de contato?",
-      aquamanager: "Me fale mais sobre o AquaManager",
-      gastromanager: "Como funciona o GastroManager?",
-      inviteexpress: "O que é o InviteExpress?",
-      diasexpress: "Como funciona o serviço de soluções domésticas?"
+      servicos: "Quais são os serviços da DEX?",
+      precos: "Gostaria de informações sobre preços",
+      contato: "Como posso entrar em contato?",
+      parcerias: "Como faço para ser parceiro?",
+      ceo: "Quem é o CEO da DEX?",
+      fundador: "Fale sobre o fundador Vicente Dias"
     };
     
     setInputMessage(actions[action] || action);
@@ -203,11 +243,14 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
       {isOpen && (
         <div className="mb-4 w-80 md:w-96 bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden pointer-events-auto animate-slideUp">
           {/* Header */}
-          <div className="bg-dexBlue p-6 text-white">
+          <div className="bg-gradient-to-r from-dexBlue to-dexDarkBlue p-6 text-white">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className={`w-3 h-3 rounded-full ${genAI ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`}></div>
-                <h3 className="font-black uppercase tracking-widest text-sm">DEX ASSISTANT</h3>
+                <div className={`w-3 h-3 rounded-full ${genAI ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></div>
+                <div>
+                  <h3 className="font-black uppercase tracking-widest text-sm">DEX ASSISTANT</h3>
+                  <p className="text-[10px] text-blue-100">Representante oficial • Vicente Dias, CEO</p>
+                </div>
               </div>
               <button 
                 onClick={() => setIsOpen(false)} 
@@ -218,7 +261,6 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
                 </svg>
               </button>
             </div>
-            <p className="text-xs text-blue-100 mt-2">Powered by Gemini AI • Online</p>
           </div>
           
           {/* Messages */}
@@ -256,9 +298,15 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
           </div>
 
           {/* Quick Actions */}
-          <div className="px-4 py-2 bg-white border-t border-gray-100">
+          <div className="px-4 py-3 bg-white border-t border-gray-100">
             <p className="text-[10px] text-gray-400 mb-2 font-medium uppercase tracking-wider">Perguntas rápidas:</p>
             <div className="flex flex-wrap gap-2">
+              <button 
+                onClick={() => handleQuickAction('ceo')}
+                className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
+              >
+                👔 Quem é o CEO?
+              </button>
               <button 
                 onClick={() => handleQuickAction('servicos')}
                 className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
@@ -266,38 +314,39 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
                 📋 Serviços
               </button>
               <button 
-                onClick={() => handleQuickAction('precos')}
-                className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
-              >
-                💰 Preços
-              </button>
-              <button 
                 onClick={() => handleQuickAction('contato')}
                 className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
               >
                 📞 Contato
               </button>
-              <button 
-                onClick={() => handleQuickAction('parcerias')}
-                className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
-              >
-                🤝 Parcerias
-              </button>
             </div>
           </div>
 
-          {/* Input */}
+          {/* Input with Voice */}
           <form onSubmit={handleSendMessage} className="p-4 bg-white border-t border-gray-100">
             <div className="flex gap-2">
-              <input
-                ref={inputRef}
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
-                className="flex-1 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-dexBlue focus:border-transparent"
-                disabled={isLoading || !genAI}
-              />
+              <div className="flex-1 relative">
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="w-full px-4 py-3 pr-12 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-dexBlue focus:border-transparent"
+                  disabled={isLoading || !genAI}
+                />
+                <button
+                  type="button"
+                  onClick={handleVoiceInput}
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                    isListening ? 'bg-dexOrange text-white animate-pulse' : 'text-gray-400 hover:text-dexBlue'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </button>
+              </div>
               <button
                 type="submit"
                 disabled={isLoading || !inputMessage.trim() || !genAI}
@@ -309,7 +358,7 @@ RESPOSTA DO ASSISTENTE (seja conciso e direto, máximo 3 parágrafos):`;
               </button>
             </div>
             <p className="text-[10px] text-gray-400 mt-3 text-center">
-              ou envie um email para <a href={`mailto:${COMPANY_EMAIL}`} className="text-dexBlue underline">{COMPANY_EMAIL}</a>
+              ou envie email para <a href={`mailto:${COMPANY_EMAIL}`} className="text-dexBlue underline">{COMPANY_EMAIL}</a>
             </p>
           </form>
         </div>
