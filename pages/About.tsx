@@ -68,7 +68,6 @@ const About: React.FC = () => {
     );
   }
 
-  // Resto do componente (todo o design original permanece igual)
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Header */}
@@ -121,7 +120,7 @@ const About: React.FC = () => {
             </div>
           </div>
 
-          {/* Imagem do Founder com Upload */}
+          {/* Imagem do Founder com Upload - AQUI ESTÁ A FUNCIONALIDADE QUE NOS DEU TRABALHO */}
           <TeamImageUpload 
             currentImageUrl={founderImage}
             name="Vicente Dias"
