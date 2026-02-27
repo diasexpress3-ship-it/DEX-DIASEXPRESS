@@ -1,73 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
-import ServiceCardWithUpload from "./ServiceCardWithUpload";
+import ServiceCard from "./ServiceCard";
 import { SERVICES } from "../constants";
-import { db } from '../services/firebase';
-import { doc, getDoc } from 'firebase/firestore';
 import "./carousel.css";
-
-// Definir o tipo do serviço baseado no SERVICES
-interface ServiceType {
-  id: string;
-  title: string;
-  description: string;
-  color: string;
-  link: string;
-  image: string;
-}
 
 const Carousel: React.FC = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [contentWidth, setContentWidth] = useState(0);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [serviceImages, setServiceImages] = useState<Record<string, string>>({});
-
-  // Carregar imagens salvas do Firestore
-  useEffect(() => {
-    const loadImages = async () => {
-      try {
-        const docRef = doc(db, 'config', 'serviceImages');
-        const docSnap = await getDoc(docRef);
-        
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          const images: Record<string, string> = {};
-          
-          Object.keys(data).forEach(key => {
-            if (key.startsWith('service_')) {
-              const serviceId = key.replace('service_', '');
-              images[serviceId] = data[key];
-            }
-          });
-          
-          setServiceImages(images);
-          console.log('✅ Imagens dos serviços carregadas do Firestore');
-        } else {
-          // Fallback para localStorage
-          const savedImages: Record<string, string> = {};
-          SERVICES.forEach((service: ServiceType) => {
-            const local = localStorage.getItem(`service_${service.id}_image`);
-            if (local) savedImages[service.id] = local;
-          });
-          setServiceImages(savedImages);
-        }
-      } catch (error) {
-        console.error('Erro ao carregar imagens:', error);
-        // Fallback para localStorage
-        const savedImages: Record<string, string> = {};
-        SERVICES.forEach((service: ServiceType) => {
-          const local = localStorage.getItem(`service_${service.id}_image`);
-          if (local) savedImages[service.id] = local;
-        });
-        setServiceImages(savedImages);
-      }
-    };
-
-    loadImages();
-  }, []);
 
   // Triple duplication for perfect seamless looping
-  const carouselItems: ServiceType[] = [...SERVICES, ...SERVICES, ...SERVICES];
+  const carouselItems = [...SERVICES, ...SERVICES, ...SERVICES];
 
   useEffect(() => {
     const calculateWidth = () => {
@@ -79,15 +22,18 @@ const Carousel: React.FC = () => {
           const style = window.getComputedStyle(container);
           const gapValue = parseInt(style.gap) || 24;
           const itemWidth = firstChild.offsetWidth;
+          // Calculate width of one full set of items
           const singleSetWidth = (itemWidth + gapValue) * SERVICES.length;
           
           setContentWidth(singleSetWidth);
+          // Start at the second set to allow scrolling both ways (though we go RTL)
           container.scrollLeft = singleSetWidth;
           setIsInitialized(true);
         }
       }
     };
 
+    // Delay slightly to ensure layout is ready
     const timer = setTimeout(calculateWidth, 100);
     window.addEventListener('resize', calculateWidth);
     return () => {
@@ -101,7 +47,7 @@ const Carousel: React.FC = () => {
     
     let animationFrameId: number;
     let lastTimestamp: number;
-    const speed = 0.8;
+    const speed = 0.8; // Pixels per frame at 60fps
 
     const scroll = (timestamp: number) => {
       if (!lastTimestamp) lastTimestamp = timestamp;
@@ -109,8 +55,10 @@ const Carousel: React.FC = () => {
       lastTimestamp = timestamp;
 
       if (scrollRef.current && !isPaused) {
+        // Move view right (items appear to move LEFT)
         scrollRef.current.scrollLeft += (speed * (elapsed / 16));
         
+        // Loop reset logic
         if (scrollRef.current.scrollLeft >= contentWidth * 2) {
           scrollRef.current.scrollLeft = contentWidth;
         }
@@ -123,15 +71,6 @@ const Carousel: React.FC = () => {
     return () => cancelAnimationFrame(animationFrameId);
   }, [isPaused, contentWidth, isInitialized]);
 
-  const handleImageUpdate = (serviceId: string, newUrl: string) => {
-    setServiceImages(prev => ({ ...prev, [serviceId]: newUrl }));
-  };
-
-  // Função para obter a imagem de um serviço
-  const getServiceImage = (service: ServiceType): string => {
-    return serviceImages[service.id] || service.image;
-  };
-
   return (
     <div 
       className="relative group w-full overflow-hidden"
@@ -143,28 +82,17 @@ const Carousel: React.FC = () => {
         className="carousel-container overflow-x-auto pb-10 pt-4 gap-6 md:gap-8 hide-scrollbar px-4 cursor-default"
         style={{ scrollBehavior: 'auto' }}
       >
-        {carouselItems.map((service, index) => {
-          // Criar uma versão do serviço com a imagem correta
-          const serviceWithImage = {
-            ...service,
-            image: getServiceImage(service)
-          };
-          
-          return (
-            <div 
-              key={`${service.id}-${index}`} 
-              className="carousel-item w-[300px] md:w-[360px] aspect-square"
-            >
-              <ServiceCardWithUpload 
-                service={serviceWithImage}
-                index={index % SERVICES.length}
-                onImageUpdate={handleImageUpdate}
-              />
-            </div>
-          );
-        })}
+        {carouselItems.map((s, index) => (
+          <div 
+            key={`${s.id}-${index}`} 
+            className="carousel-item w-[300px] md:w-[360px] aspect-square"
+          >
+            <ServiceCard {...s} index={index % SERVICES.length} />
+          </div>
+        ))}
       </div>
       
+      {/* Visual edge fades */}
       <div className="absolute top-0 left-0 w-32 h-full bg-gradient-to-r from-gray-50 to-transparent pointer-events-none z-10" />
       <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-10" />
     </div>
