@@ -306,7 +306,7 @@ const SolutionGallery: React.FC = () => {
                   </div>
                 </Link>
 
-                {/* Botão de upload para admin (aparece ao passar o mouse) */}
+                {/* Botão de upload para admin (aparece ao passar o mouse) - MANTIDO */}
                 {isAdmin && isHovered && !isUploading && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black/70 cursor-pointer rounded-[3rem] z-30">
                     <div className="text-center text-white">
@@ -326,7 +326,7 @@ const SolutionGallery: React.FC = () => {
                   </label>
                 )}
 
-                {/* Loading overlay durante upload */}
+                {/* Loading overlay durante upload - MANTIDO */}
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[3rem] z-30">
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-dexOrange border-t-transparent"></div>
