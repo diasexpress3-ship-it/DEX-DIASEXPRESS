@@ -4,7 +4,8 @@ import {
   BRAND_NAME, 
   COMPANY_EMAIL, 
   COMPANY_WHATSAPP,
-  SERVICES 
+  SERVICES,
+  DIASEXPRESS_CATEGORIES 
 } from '../constants';
 
 // Declaração de tipos para o SpeechRecognition
@@ -30,6 +31,13 @@ interface Message {
 // Função para obter lista de serviços formatada
 const getServicesList = (): string => {
   return SERVICES.map(s => `• **${s.title}**: ${s.description}`).join('\n');
+};
+
+// Função para obter categorias da DIASEXPRESS formatada
+const getDiasexpressCategories = (): string => {
+  return DIASEXPRESS_CATEGORIES.map(cat => 
+    `**${cat.title}**\n${cat.items.map(item => `  • ${item}`).join('\n')}`
+  ).join('\n\n');
 };
 
 const AIAssistant: React.FC = () => {
@@ -113,11 +121,14 @@ const AIAssistant: React.FC = () => {
     if (q.includes('ceo') || q.includes('fundador') || q.includes('vicente') || q.includes('dias')) {
       return 'ceo';
     }
-    if (q.includes('contato') || q.includes('contacto') || q.includes('whatsapp') || q.includes('email')) {
+    if (q.includes('contato') || q.includes('contacto') || q.includes('whatsapp') || q.includes('email') || q.includes('telefone')) {
       return 'contact';
     }
-    if (q.includes('preço') || q.includes('precos') || q.includes('custo') || q.includes('valor')) {
+    if (q.includes('preço') || q.includes('precos') || q.includes('custo') || q.includes('valor') || q.includes('quanto custa')) {
       return 'pricing';
+    }
+    if (q.includes('categoria') || q.includes('categorias') || q.includes('doméstico') || q.includes('limpeza') || q.includes('manutenção')) {
+      return 'categories';
     }
     return 'general';
   };
@@ -132,7 +143,16 @@ const AIAssistant: React.FC = () => {
 
 ${getServicesList()}
 
+💡 **Destaque:** A DIASEXPRESS Soluções Domésticas oferece mais de 30 categorias de serviços, incluindo limpeza, manutenção, jardinagem, babás e muito mais!
+
 Todos os nossos serviços operam em Moçambique com a qualidade e inovação DEX. Posso dar mais detalhes sobre algum específico?`;
+      
+      case 'categories':
+        return `🏠 **Categorias da DIASEXPRESS Soluções Domésticas:**
+
+${getDiasexpressCategories()}
+
+📱 Para solicitar qualquer um destes serviços, entre em contato pelo WhatsApp: ${COMPANY_WHATSAPP}`;
       
       case 'ceo':
         return `👔 **Sobre a Liderança:**
@@ -149,6 +169,7 @@ Posso ajudar com mais informações sobre a empresa?`;
 
 **WhatsApp:** ${COMPANY_WHATSAPP}
 **Email:** ${COMPANY_EMAIL}
+**Telefone:** +258 87 142 5316
 
 👔 **CEO & Founder:** Vicente Dias
 📍 **Localização:** Maputo, Moçambique
@@ -162,8 +183,9 @@ Os preços dos nossos serviços são personalizados de acordo com cada necessida
 
 📱 **WhatsApp:** ${COMPANY_WHATSAPP}
 📧 **Email:** ${COMPANY_EMAIL}
+📞 **Telefone:** +258 87 142 5316
 
-Um representante DEX responderá em breve!`;
+Um representante DEX responderá em breve com uma proposta personalizada!`;
       
       default:
         return `Olá! Sou o assistente da DEX. Aqui estão as principais informações:
@@ -171,7 +193,7 @@ Um representante DEX responderá em breve!`;
 👔 **CEO & Founder:** Vicente Dias
 📍 **Localização:** Maputo, Moçambique
 
-📋 **Serviços:**
+📋 **Principais Serviços:**
 ${getServicesList().split('\n').slice(0, 2).join('\n')}...
 
 📱 **Contato:** ${COMPANY_WHATSAPP} | ${COMPANY_EMAIL}
@@ -231,9 +253,15 @@ FUNDADOR E CEO: Vicente Dias
 LOCALIZAÇÃO: Maputo, Moçambique
 EMAIL: ${COMPANY_EMAIL}
 WHATSAPP: ${COMPANY_WHATSAPP}
+TELEFONE: +258 87 142 5316
 
 SERVIÇOS OFERECIDOS:
 ${SERVICES.map(s => `- ${s.title}: ${s.description}`).join('\n')}
+
+CATEGORIAS DA DIASEXPRESS (mais de 30 serviços):
+${DIASEXPRESS_CATEGORIES.map(cat => 
+  `- ${cat.title}:\n  ${cat.items.map(item => `  * ${item}`).join('\n')}`
+).join('\n')}
 
 LINKS DOS SERVIÇOS:
 ${SERVICES.map(s => `- ${s.title}: ${s.link}`).join('\n')}
@@ -248,9 +276,11 @@ REGRAS IMPORTANTES:
 1. SEMPRE inclua informações sobre os serviços quando perguntado
 2. Se perguntarem sobre o CEO, diga que é Vicente Dias, fundador da empresa em Maputo
 3. Se perguntarem sobre serviços, liste TODOS os serviços com suas descrições
-4. Se perguntarem sobre preços, diga que são personalizados e peça contato via WhatsApp
-5. Se perguntarem sobre contato, forneça email e WhatsApp
-6. Responda em português de Moçambique, tom profissional e amigável
+4. Se perguntarem sobre preços, diga que são personalizados e forneça os contatos da empresa
+5. Se perguntarem sobre contato, forneça WhatsApp, email e telefone
+6. Se perguntarem sobre categorias específicas, detalhe os serviços disponíveis
+7. Responda em português de Moçambique, tom profissional e amigável
+8. SEMPRE inclua os contatos da empresa em respostas sobre preços
 
 PERGUNTA DO CLIENTE: ${inputMessage}
 
@@ -261,7 +291,7 @@ SUA RESPOSTA (seja direto e útil, inclua emojis apropriados):`;
         contents: fullPrompt,
         config: {
           temperature: 0.3,
-          maxOutputTokens: 500,
+          maxOutputTokens: 600,
         }
       });
 
@@ -299,8 +329,9 @@ SUA RESPOSTA (seja direto e útil, inclua emojis apropriados):`;
     const actions: Record<string, string> = {
       ceo: "Quem é o CEO da DEX?",
       servicos: "Quais são os serviços da DEX?",
-      contato: "Como posso entrar em contato?",
-      precos: "Quanto custam os serviços?"
+      categorias: "Quais são as categorias da DIASEXPRESS?",
+      precos: "Quanto custam os serviços?",
+      contato: "Como posso entrar em contato?"
     };
     
     setInputMessage(actions[action] || action);
@@ -378,6 +409,12 @@ SUA RESPOSTA (seja direto e útil, inclua emojis apropriados):`;
                 className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
               >
                 📋 Serviços
+              </button>
+              <button 
+                onClick={() => handleQuickAction('categorias')}
+                className="text-xs bg-gray-100 hover:bg-dexBlue hover:text-white px-3 py-1.5 rounded-full transition-colors"
+              >
+                🏠 Categorias
               </button>
               <button 
                 onClick={() => handleQuickAction('precos')}
