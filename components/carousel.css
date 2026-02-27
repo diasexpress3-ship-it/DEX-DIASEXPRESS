@@ -1,0 +1,68 @@
+
+/* components/carousel.css */
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.cursor-grab {
+  cursor: grab;
+}
+
+.cursor-grabbing {
+  cursor: grabbing;
+}
+
+/* Ensure children don't shrink and stay in a single line */
+.carousel-container {
+  display: flex;
+  flex-wrap: nowrap;
+  will-change: transform;
+}
+
+.carousel-item {
+  flex: 0 0 auto;
+}
+
+/* Smooth text clamping */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Pause animation class if needed for CSS based ones */
+.pause-animation {
+  animation-play-state: paused !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.8s ease-out forwards;
+}
+
+/* Up and Down floating animation for individual cards */
+@keyframes floatUpDown {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-15px); }
+}
+
+.animate-float-up-down {
+  animation: floatUpDown 5s ease-in-out infinite;
+}
+
+/* Optional: Slight pulse effect for the cards */
+.hover-scale-card:hover {
+  transform: scale(1.05) translateY(-5px);
+  z-index: 20;
+}
