@@ -7,6 +7,14 @@ import {
   SERVICES 
 } from '../constants';
 
+// Declaração de tipos para o SpeechRecognition que não vem nativamente no TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 // Initialize the Google AI client
 const API_KEY = import.meta.env.VITE_GOOGLE_AI_KEY;
 const genAI = API_KEY ? new GoogleGenAI({ apiKey: API_KEY }) : null;
@@ -38,8 +46,9 @@ const AIAssistant: React.FC = () => {
 
   // Inicializar reconhecimento de voz
   useEffect(() => {
+    // Verificar se o navegador suporta SpeechRecognition
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = false;
       recognitionRef.current.interimResults = false;
@@ -157,7 +166,7 @@ SUA RESPOSTA (seja direto e útil, máximo 4 parágrafos):`;
         model: "gemini-2.0-flash-exp",
         contents: fullPrompt,
         config: {
-          temperature: 0.3, // Mais baixo para respostas consistentes
+          temperature: 0.3,
           maxOutputTokens: 400,
         }
       });
@@ -174,22 +183,6 @@ SUA RESPOSTA (seja direto e útil, máximo 4 parágrafos):`;
       };
 
       setMessages(prev => [...prev, aiMessage]);
-
-      // Se a pergunta for sobre o fundador, reforçar a resposta
-      if (inputMessage.toLowerCase().includes('ceo') || 
-          inputMessage.toLowerCase().includes('fundador') ||
-          inputMessage.toLowerCase().includes('vicente')) {
-        
-        setTimeout(() => {
-          const founderMessage: Message = {
-            id: (Date.now() + 3).toString(),
-            text: `👔 Reforçando: Vicente Dias é o CEO e Founder da ${BRAND_NAME}, liderando a inovação digital em Moçambique desde a fundação da empresa.`,
-            sender: 'ai',
-            timestamp: new Date()
-          };
-          setMessages(prev => [...prev, founderMessage]);
-        }, 500);
-      }
 
     } catch (error) {
       console.error('Error calling AI:', error);
@@ -208,12 +201,6 @@ SUA RESPOSTA (seja direto e útil, máximo 4 parágrafos):`;
 - WhatsApp: ${COMPANY_WHATSAPP}
 - Email: ${COMPANY_EMAIL}
 
-💼 **Nossos serviços:**
-- DIASEXPRESS: Soluções domésticas
-- AquaManager: Gestão de água
-- GastroManager: Gestão para restaurantes
-- InviteExpress: Convites digitais
-
 Como posso ajudar mais?`,
         sender: 'ai',
         timestamp: new Date()
@@ -227,12 +214,9 @@ Como posso ajudar mais?`,
 
   const handleQuickAction = (action: string) => {
     const actions: Record<string, string> = {
-      servicos: "Quais são os serviços da DEX?",
-      precos: "Gostaria de informações sobre preços",
-      contato: "Como posso entrar em contato?",
-      parcerias: "Como faço para ser parceiro?",
       ceo: "Quem é o CEO da DEX?",
-      fundador: "Fale sobre o fundador Vicente Dias"
+      servicos: "Quais são os serviços da DEX?",
+      contato: "Como posso entrar em contato?"
     };
     
     setInputMessage(actions[action] || action);
@@ -244,13 +228,10 @@ Como posso ajudar mais?`,
         <div className="mb-4 w-80 md:w-96 bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100 overflow-hidden pointer-events-auto animate-slideUp">
           {/* Header */}
           <div className="bg-gradient-to-r from-dexBlue to-dexDarkBlue p-6 text-white">
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-3">
                 <div className={`w-3 h-3 rounded-full ${genAI ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></div>
-                <div>
-                  <h3 className="font-black uppercase tracking-widest text-sm">DEX ASSISTANT</h3>
-                  <p className="text-[10px] text-blue-100">Representante oficial • Vicente Dias, CEO</p>
-                </div>
+                <h3 className="font-black uppercase tracking-widest text-sm">DEX ASSISTANT</h3>
               </div>
               <button 
                 onClick={() => setIsOpen(false)} 
@@ -261,6 +242,7 @@ Como posso ajudar mais?`,
                 </svg>
               </button>
             </div>
+            <p className="text-xs text-blue-100">Representante oficial • Vicente Dias, CEO</p>
           </div>
           
           {/* Messages */}
@@ -335,17 +317,19 @@ Como posso ajudar mais?`,
                   className="w-full px-4 py-3 pr-12 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-dexBlue focus:border-transparent"
                   disabled={isLoading || !genAI}
                 />
-                <button
-                  type="button"
-                  onClick={handleVoiceInput}
-                  className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
-                    isListening ? 'bg-dexOrange text-white animate-pulse' : 'text-gray-400 hover:text-dexBlue'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                  </svg>
-                </button>
+                {recognitionRef.current && (
+                  <button
+                    type="button"
+                    onClick={handleVoiceInput}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-lg transition-colors ${
+                      isListening ? 'bg-dexOrange text-white animate-pulse' : 'text-gray-400 hover:text-dexBlue'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </button>
+                )}
               </div>
               <button
                 type="submit"
