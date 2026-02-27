@@ -26,42 +26,40 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadButton, setShowUploadButton] = useState(false);
   
-  // Verificar admin pelo localStorage em vez do useAuth
+  // Verificar admin pelo localStorage
   const [isAdmin, setIsAdmin] = useState(false);
   
   useEffect(() => {
-    // Verificar se o usuário é admin pelo localStorage
     const adminStatus = localStorage.getItem('isAdmin');
     const adminEmail = localStorage.getItem('adminEmail');
     
     if (adminStatus === 'true' && adminEmail) {
       setIsAdmin(true);
-      console.log('✅ Admin detectado pelo localStorage:', adminEmail);
+      console.log('✅ Admin detectado:', adminEmail);
     } else {
       setIsAdmin(false);
-      console.log('❌ Nenhum admin no localStorage');
     }
   }, []);
 
-  console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅ Configurada' : '❌ Não configurada');
-  console.log('👤 isAdmin (localStorage):', isAdmin);
+  console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅' : '❌');
+  console.log('👤 isAdmin:', isAdmin);
 
   useEffect(() => {
     setImageUrl(currentImageUrl);
   }, [currentImageUrl]);
 
-  const saveImageToFirestore = async (imageUrl: string) => {
+  // Função opcional - tenta salvar no Firestore mas não bloqueia
+  const trySaveToFirestore = async (imageUrl: string) => {
     try {
       await setDoc(doc(db, 'config', 'founderImage'), {
         url: imageUrl,
         updatedAt: new Date().toISOString(),
         updatedBy: 'admin'
       });
-      console.log('✅ URL salva no Firestore para todos os usuários!');
-      return true;
+      console.log('✅ Firestore: URL salva');
     } catch (error) {
-      console.error('❌ Erro ao salvar no Firestore:', error);
-      return false;
+      // Apenas log, não interrompe o fluxo
+      console.log('ℹ️ Firestore: não disponível (upload continua)');
     }
   };
 
@@ -105,66 +103,38 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
     setUploadProgress(10);
 
     try {
+      // Preview local
       const objectUrl = URL.createObjectURL(file);
       setImageUrl(objectUrl);
       setUploadProgress(30);
 
-      try {
-        setUploadProgress(50);
-        const imgbbUrl = await uploadToImgBB(file);
-        setUploadProgress(90);
+      // Upload para ImgBB
+      setUploadProgress(50);
+      const imgbbUrl = await uploadToImgBB(file);
+      setUploadProgress(90);
 
-        setImageUrl(imgbbUrl);
-        setUploadProgress(100);
-        
-        // Tenta salvar no Firestore (se falhar, continua)
-        try {
-          await saveImageToFirestore(imgbbUrl);
-        } catch (firestoreError) {
-          console.warn('Firestore falhou, mas upload continua:', firestoreError);
-        }
-        
-        if (onImageUpdate) {
-          onImageUpdate(imgbbUrl);
-        }
-
-        localStorage.setItem('founderImage', imgbbUrl);
-        
-        console.log('✅ Upload para ImgBB concluído com sucesso! URL:', imgbbUrl);
-        
-      } catch (uploadError) {
-        console.warn('Upload ImgBB falhou, usando modo local (Base64):', uploadError);
-        
-        setUploadProgress(60);
-        
-        const reader = new FileReader();
-        
-        const base64Promise = new Promise<string>((resolve, reject) => {
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-        });
-        
-        reader.readAsDataURL(file);
-        
-        const base64String = await base64Promise;
-        setUploadProgress(90);
-        
-        setImageUrl(base64String);
-        
-        if (onImageUpdate) {
-          onImageUpdate(base64String);
-        }
-
-        localStorage.setItem('founderImage', base64String);
-        
-        console.log('Upload local (Base64) concluído com sucesso!');
+      // Atualizar com URL real
+      setImageUrl(imgbbUrl);
+      setUploadProgress(100);
+      
+      // Tentar salvar no Firestore (opcional)
+      await trySaveToFirestore(imgbbUrl);
+      
+      // Notificar componente pai
+      if (onImageUpdate) {
+        onImageUpdate(imgbbUrl);
       }
+
+      // Salvar no localStorage
+      localStorage.setItem('founderImage', imgbbUrl);
+      
+      console.log('✅ Upload concluído! URL:', imgbbUrl);
       
       URL.revokeObjectURL(objectUrl);
       setTimeout(() => setUploadProgress(0), 2000);
       
     } catch (err) {
-      console.error('Erro no upload:', err);
+      console.error('❌ Erro no upload:', err);
       setError('Erro ao fazer upload. Tente novamente.');
       setImageUrl(currentImageUrl);
     } finally {
@@ -185,13 +155,16 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           className="w-full h-auto object-cover aspect-[4/5] transition-transform duration-700 group-hover:scale-110"
         />
         
+        {/* Overlay gradiente */}
         <div className="absolute inset-0 bg-gradient-to-t from-dexDarkBlue via-transparent to-transparent opacity-60"></div>
         
+        {/* Nome e cargo */}
         <div className="absolute bottom-0 left-0 right-0 p-8 text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
           <h3 className="text-3xl font-black tracking-tight mb-2">{name}</h3>
           <p className="text-dexOrange font-bold text-sm uppercase tracking-widest">{role}</p>
         </div>
 
+        {/* Barra de progresso */}
         {uploadProgress > 0 && uploadProgress < 100 && (
           <div className="absolute top-0 left-0 right-0 h-1 bg-dexOrange/30">
             <div 
@@ -201,7 +174,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           </div>
         )}
 
-        {/* BOTÃO DE UPLOAD - Aparece ao passar o mouse (baseado no localStorage) */}
+        {/* Botão de upload para admin */}
         {isAdmin && showUploadButton && !uploading && (
           <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 cursor-pointer z-20">
             <div className="text-center text-white">
@@ -224,18 +197,20 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           </label>
         )}
 
+        {/* Loading overlay */}
         {uploading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-60">
             <div className="text-center">
               <div className="animate-spin rounded-full h-16 w-16 border-4 border-dexOrange border-t-transparent mx-auto mb-4"></div>
               <p className="text-white font-bold">Enviando imagem...</p>
               <p className="text-white/70 text-sm mt-2">
-                {uploadProgress < 50 ? 'Preparando...' : uploadProgress < 80 ? 'Enviando...' : 'Processando...'}
+                {uploadProgress < 50 ? 'Preparando...' : 'Enviando...'}
               </p>
             </div>
           </div>
         )}
 
+        {/* Mensagem de erro */}
         {error && (
           <div className="absolute bottom-4 left-4 right-4 bg-red-500 text-white p-3 rounded-xl text-sm">
             {error}
