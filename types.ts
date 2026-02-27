@@ -1,3 +1,10 @@
+export interface ServiceCategory {
+  id: string;
+  title: string;
+  description: string;
+  items: string[];
+}
+
 export interface ServiceInfo {
   id: string;
   title: string;
@@ -5,7 +12,8 @@ export interface ServiceInfo {
   fullDescription?: string;
   color: string;
   link: string;
-  image: string; // ADICIONADO: imagem padrão do serviço
+  image: string;
+  categories?: ServiceCategory[]; // Opcional para serviços que têm subcategorias
 }
 
 export interface Partner {
