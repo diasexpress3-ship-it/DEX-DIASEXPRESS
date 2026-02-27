@@ -1,4 +1,3 @@
-
 export interface ServiceInfo {
   id: string;
   title: string;
@@ -6,6 +5,7 @@ export interface ServiceInfo {
   fullDescription?: string;
   color: string;
   link: string;
+  image: string; // ADICIONADO: imagem padrão do serviço
 }
 
 export interface Partner {
@@ -18,4 +18,10 @@ export interface ContactForm {
   name: string;
   email: string;
   message: string;
+}
+
+// Interface para as imagens do Firestore
+export interface ServiceImages {
+  [key: `service_${string}`]: string;
+  updatedAt?: string;
 }
