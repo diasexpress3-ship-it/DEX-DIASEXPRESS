@@ -12,9 +12,8 @@ import WaterManagement from "./pages/WaterManagement";
 import Partners from "./pages/Partners";
 import Contact from "./pages/Contact";
 import AIAssistant from "./components/AIAssistant";
-import AdminLogin from "./components/AdminLogin"; // <-- NOVA IMPORTAÇÃO
+import AdminLogin from "./components/AdminLogin";
 
-// Helper component to scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -40,12 +39,14 @@ const App: React.FC = () => {
             <Route path="/aquamanager" element={<WaterManagement />} />
             <Route path="/partners" element={<Partners />} />
             <Route path="/contact" element={<Contact />} />
-            {/* Catch-all for 404s */}
+            
+            {/* ROTA SECRETA DO ADMIN */}
+            <Route path="/admin-secret-2026" element={<AdminLogin />} />
+            
             <Route path="*" element={<Home />} />
           </Routes>
         </main>
         <AIAssistant />
-        <AdminLogin /> {/* <-- COMPONENTE DE LOGIN ADICIONADO AQUI */}
         <Footer />
       </div>
     </Router>
