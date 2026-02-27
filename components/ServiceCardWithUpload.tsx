@@ -6,15 +6,15 @@ import ServiceCard from './ServiceCard';
 
 interface ServiceCardWithUploadProps {
   service: {
-    id: number;
+    id: string;
     title: string;
     description: string;
     color: string;
     link: string;
-    image: string; // URL da imagem original
+    image: string;
   };
   index: number;
-  onImageUpdate?: (serviceId: number, newUrl: string) => void;
+  onImageUpdate?: (serviceId: string, newUrl: string) => void;
 }
 
 // Chave da API do ImgBB
@@ -119,6 +119,7 @@ const ServiceCardWithUpload: React.FC<ServiceCardWithUploadProps> = ({
       onMouseLeave={() => isAdmin && setShowUploadButton(false)}
     >
       <ServiceCard
+        id={service.id}
         title={service.title}
         description={service.description}
         color={service.color}
