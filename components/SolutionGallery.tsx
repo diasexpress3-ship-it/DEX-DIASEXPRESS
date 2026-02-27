@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { SERVICE_IMAGES } from "../constants";
 import { db } from '../services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { useAuth } from '../hooks/useAuth';
 import "./carousel.css";
 
 // Chave da API do ImgBB
@@ -21,7 +20,19 @@ const SolutionGallery: React.FC = () => {
   const [galleryImages, setGalleryImages] = useState<Record<string, string>>({});
   const [uploading, setUploading] = useState<Record<string, boolean>>({});
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const { isAdmin } = useAuth();
+  
+  // Verificar admin pelo localStorage
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    const adminStatus = localStorage.getItem('isAdmin');
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    if (adminStatus === 'true' && adminEmail) {
+      setIsAdmin(true);
+      console.log('✅ Admin detectado no SolutionGallery:', adminEmail);
+    }
+  }, []);
 
   // Carregar imagens salvas do Firestore
   useEffect(() => {
@@ -45,6 +56,13 @@ const SolutionGallery: React.FC = () => {
         }
       } catch (error) {
         console.error('Erro ao carregar imagens da galeria:', error);
+        // Fallback para localStorage
+        const savedImages: Record<string, string> = {};
+        SERVICE_IMAGES.forEach(item => {
+          const local = localStorage.getItem(`gallery_${item.service}`);
+          if (local) savedImages[item.service] = local;
+        });
+        setGalleryImages(savedImages);
       }
     };
 
@@ -152,6 +170,7 @@ const SolutionGallery: React.FC = () => {
     return `/${serviceId}`;
   };
 
+  // Funções de upload
   const uploadToImgBB = async (file: File): Promise<string> => {
     if (!IMGBB_API_KEY) {
       throw new Error('Chave da API do ImgBB não configurada');
@@ -173,27 +192,40 @@ const SolutionGallery: React.FC = () => {
     return data.data.url;
   };
 
+  const trySaveToFirestore = async (serviceId: string, imageUrl: string) => {
+    try {
+      await setDoc(doc(db, 'config', 'galleryImages'), {
+        [serviceId]: imageUrl,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+      console.log(`✅ Firestore: URL salva para ${serviceId}`);
+    } catch (error) {
+      console.log(`ℹ️ Firestore: não disponível para ${serviceId} (upload continua)`);
+    }
+  };
+
   const handleImageUpload = async (serviceId: string, file: File) => {
     if (!isAdmin) return;
 
     setUploading(prev => ({ ...prev, [serviceId]: true }));
 
     try {
+      // Upload para ImgBB
       const imgbbUrl = await uploadToImgBB(file);
       
+      // Atualizar estado local
       setGalleryImages(prev => ({ ...prev, [serviceId]: imgbbUrl }));
       
-      await setDoc(doc(db, 'config', 'galleryImages'), {
-        [serviceId]: imgbbUrl,
-        updatedAt: new Date().toISOString(),
-      }, { merge: true });
+      // Tentar salvar no Firestore (opcional)
+      await trySaveToFirestore(serviceId, imgbbUrl);
       
+      // Salvar no localStorage
       localStorage.setItem(`gallery_${serviceId}`, imgbbUrl);
       
-      console.log(`✅ Imagem ${serviceId} atualizada com sucesso!`);
+      console.log(`✅ Upload concluído para ${serviceId}! URL:`, imgbbUrl);
       
     } catch (error) {
-      console.error('Erro no upload:', error);
+      console.error(`❌ Erro no upload para ${serviceId}:`, error);
       alert('Erro ao fazer upload. Tente novamente.');
     } finally {
       setUploading(prev => ({ ...prev, [serviceId]: false }));
@@ -306,7 +338,7 @@ const SolutionGallery: React.FC = () => {
                   </div>
                 </Link>
 
-                {/* Botão de upload para admin (aparece ao passar o mouse) - MANTIDO */}
+                {/* Botão de upload para admin (aparece ao passar o mouse) */}
                 {isAdmin && isHovered && !isUploading && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black/70 cursor-pointer rounded-[3rem] z-30">
                     <div className="text-center text-white">
@@ -326,7 +358,7 @@ const SolutionGallery: React.FC = () => {
                   </label>
                 )}
 
-                {/* Loading overlay durante upload - MANTIDO */}
+                {/* Loading overlay durante upload */}
                 {isUploading && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[3rem] z-30">
                     <div className="animate-spin rounded-full h-10 w-10 border-4 border-dexOrange border-t-transparent"></div>
@@ -337,10 +369,12 @@ const SolutionGallery: React.FC = () => {
           })}
         </div>
         
+        {/* Gradientes nas laterais */}
         <div className="absolute top-0 left-0 w-48 h-full bg-gradient-to-r from-gray-50 to-transparent pointer-events-none z-10" />
         <div className="absolute top-0 right-0 w-48 h-full bg-gradient-to-l from-gray-50 to-transparent pointer-events-none z-10" />
       </div>
 
+      {/* Barra de progresso */}
       <div className="container mx-auto px-6 mt-10">
         <div className="max-w-4xl mx-auto px-10 py-12 bg-white rounded-[3.5rem] border border-gray-100 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-2 h-full bg-dexOrange"></div>
