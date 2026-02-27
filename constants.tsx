@@ -23,12 +23,19 @@ Localização: Maputo, Moçambique.
 Sempre ofereça ajuda para explicar serviços ou direcionar para a página de contato. Responda de forma concisa e amigável.
 `;
 
-// Mapeamento de imagens por ID do serviço
+// Mapeamento de imagens por ID do serviço - MIX DE JPG E GIF
 const SERVICE_IMAGE_MAP: Record<string, string> = {
+  // Imagem estática para DiasExpress
   diasexpress: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop",
-  aquamanager: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
+  
+  // GIF animado para AquaManager (monitoramento de água)
+  aquamanager: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExaWp4d3Z6b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0c2p0c2p0/3o7abKhOpu0ixowjeU/giphy.gif", // Exemplo - substituir por GIF real
+  
+  // Imagem estática para GastroManager
   gastromanager: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop",
-  inviteexpress: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=800&auto=format&fit=crop"
+  
+  // GIF animado para InviteExpress (convites animados)
+  inviteexpress: "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExb3Z6c3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0b3R4c2p0c2p0c2p0/26ufdipQqU2lhNA4g/giphy.gif" // Exemplo - substituir por GIF real
 };
 
 export const SERVICES: ServiceInfo[] = [
@@ -75,25 +82,29 @@ export const SERVICE_IMAGES = [
     url: SERVICE_IMAGE_MAP.diasexpress,
     title: "Soluções Domésticas",
     service: "diasexpress",
-    description: "Eletricistas e canalizadores profissionais para sua residência."
+    description: "Eletricistas e canalizadores profissionais para sua residência.",
+    isGif: false // Opcional: para identificar se é GIF
   },
   {
     url: SERVICE_IMAGE_MAP.aquamanager,
     title: "Nexus Aqua Manager",
     service: "aquamanager",
-    description: "Monitoramento hídrico e faturamento inteligente com leitura via imagem."
+    description: "Monitoramento hídrico e faturamento inteligente com leitura via imagem.",
+    isGif: true // Este é um GIF
   },
   {
     url: SERVICE_IMAGE_MAP.gastromanager,
     title: "Gestão Gastro",
     service: "gastromanager",
-    description: "Controle de inventário e vendas para o setor gastronômico."
+    description: "Controle de inventário e vendas para o setor gastronômico.",
+    isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.inviteexpress,
     title: "Convites Digitais",
     service: "inviteexpress",
-    description: "Tecnologia digital para convites de eventos de todos os tipos."
+    description: "Tecnologia digital para convites de eventos de todos os tipos.",
+    isGif: true // Este é um GIF
   }
 ];
 
