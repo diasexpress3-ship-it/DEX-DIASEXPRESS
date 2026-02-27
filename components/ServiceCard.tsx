@@ -1,13 +1,20 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import { ServiceInfo } from "../types";
 
 interface ServiceCardProps extends ServiceInfo {
   index?: number;
+  backgroundImage?: string; // Nova prop para imagem de fundo
 }
 
-const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, color, link, index = 0 }) => {
+const ServiceCard: React.FC<ServiceCardProps> = ({ 
+  title, 
+  description, 
+  color, 
+  link, 
+  index = 0,
+  backgroundImage // Nova prop
+}) => {
   return (
     <div 
       className="flex flex-col h-full w-full p-8 rounded-3xl shadow-lg text-white transition-all transform hover:scale-[1.02] hover:shadow-2xl group border border-white/10 overflow-hidden relative" 
@@ -16,6 +23,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, color, li
         animationDelay: `${index * 0.2}s`
       }}
     >
+      {/* Imagem de fundo (se existir) */}
+      {backgroundImage && (
+        <div 
+          className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-500"
+          style={{
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        />
+      )}
+      
       <div className="relative z-10 flex flex-col h-full">
         <div className="mb-6 bg-white bg-opacity-20 p-4 rounded-2xl inline-block w-14 h-14 flex items-center justify-center shadow-inner">
           <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,3 +67,4 @@ const ServiceCard: React.FC<ServiceCardProps> = ({ title, description, color, li
 };
 
 export default ServiceCard;
+
