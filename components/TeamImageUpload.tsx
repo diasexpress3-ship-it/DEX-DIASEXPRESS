@@ -25,12 +25,26 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showUploadButton, setShowUploadButton] = useState(false);
-  const { isAdmin, loading } = useAuth();
+  
+  // Verificar admin pelo localStorage em vez do useAuth
+  const [isAdmin, setIsAdmin] = useState(false);
+  
+  useEffect(() => {
+    // Verificar se o usuário é admin pelo localStorage
+    const adminStatus = localStorage.getItem('isAdmin');
+    const adminEmail = localStorage.getItem('adminEmail');
+    
+    if (adminStatus === 'true' && adminEmail) {
+      setIsAdmin(true);
+      console.log('✅ Admin detectado pelo localStorage:', adminEmail);
+    } else {
+      setIsAdmin(false);
+      console.log('❌ Nenhum admin no localStorage');
+    }
+  }, []);
 
-  // LOGS PARA DEBUG - VERIFICAR SE O ADMIN ESTÁ SENDO RECONHECIDO
   console.log('🔑 VITE_IMGBB_KEY:', import.meta.env.VITE_IMGBB_KEY ? '✅ Configurada' : '❌ Não configurada');
-  console.log('👤 isAdmin:', isAdmin);
-  console.log('👤 loading:', loading);
+  console.log('👤 isAdmin (localStorage):', isAdmin);
 
   useEffect(() => {
     setImageUrl(currentImageUrl);
@@ -74,7 +88,7 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return; // Removido !isAdmin temporariamente para teste
+    if (!file) return;
 
     if (!file.type.startsWith('image/')) {
       setError('Por favor, selecione uma imagem válida.');
@@ -103,7 +117,12 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
         setImageUrl(imgbbUrl);
         setUploadProgress(100);
         
-        await saveImageToFirestore(imgbbUrl);
+        // Tenta salvar no Firestore (se falhar, continua)
+        try {
+          await saveImageToFirestore(imgbbUrl);
+        } catch (firestoreError) {
+          console.warn('Firestore falhou, mas upload continua:', firestoreError);
+        }
         
         if (onImageUpdate) {
           onImageUpdate(imgbbUrl);
@@ -153,21 +172,6 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
     }
   };
 
-  if (loading) {
-    return (
-      <div className="relative">
-        <div className="w-full h-96 bg-gray-200 rounded-[2.5rem] animate-pulse"></div>
-      </div>
-    );
-  }
-
-  // POR ENQUANTO, VAMOS MOSTRAR O BOTÃO PARA QUALQUER UM (PARA TESTE)
-  // Depois que funcionar, voltamos para if (!isAdmin)
-  // if (!isAdmin) {
-  //   return ( ... )
-  // }
-
-  // VERSÃO COM BOTÃO SEMPRE VISÍVEL PARA TESTE
   return (
     <div 
       className="relative group"
@@ -197,8 +201,8 @@ const TeamImageUpload: React.FC<TeamImageUploadProps> = ({
           </div>
         )}
 
-        {/* BOTÃO DE UPLOAD - Aparece ao passar o mouse (QUALQUER UM POR ENQUANTO) */}
-        {showUploadButton && !uploading && (
+        {/* BOTÃO DE UPLOAD - Aparece ao passar o mouse (baseado no localStorage) */}
+        {isAdmin && showUploadButton && !uploading && (
           <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-70 cursor-pointer z-20">
             <div className="text-center text-white">
               <div className="w-16 h-16 bg-dexOrange rounded-full flex items-center justify-center mx-auto mb-4">
