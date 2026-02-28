@@ -5,6 +5,17 @@ export interface ServiceCategory {
   items: string[];
 }
 
+export interface DiasexpressCategory {
+  id: string;
+  title: string;
+  description: string;
+  items: string[];
+  icon: string;
+  gradient: string;
+  borderColor: string;
+  textColor: string;
+}
+
 export interface ServiceInfo {
   id: string;
   title: string;
@@ -13,7 +24,7 @@ export interface ServiceInfo {
   color: string;
   link: string;
   image: string;
-  categories?: ServiceCategory[]; // Opcional para serviços que têm subcategorias
+  categories?: ServiceCategory[];
 }
 
 export interface Partner {
