@@ -90,7 +90,8 @@ const Services: React.FC = () => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   <div className="absolute bottom-4 left-6">
                     <span className="text-dexOrange font-black text-xs uppercase tracking-widest">
-                      {service.id === 'diasexpress' ? 'MAIS DE 30 CATEGORIAS' : 'TECNOLOGIA DEX'}
+                      {service.id === 'diasexpress' ? 'MAIS DE 30 CATEGORIAS' : 
+                       service.id === 'dex-ats' ? 'CHATBOT WHATSAPP' : 'TECNOLOGIA DEX'}
                     </span>
                   </div>
                 </div>
@@ -106,7 +107,8 @@ const Services: React.FC = () => {
                     >
                       {service.id === 'diasexpress' ? '🏠' : 
                        service.id === 'aquamanager' ? '💧' :
-                       service.id === 'gastromanager' ? '🍽️' : '💌'}
+                       service.id === 'gastromanager' ? '🍽️' : 
+                       service.id === 'dex-ats' ? '🤖' : '💌'}
                     </div>
                   </div>
                   
@@ -211,7 +213,7 @@ const Services: React.FC = () => {
             <div className="text-sm text-gray-600 font-medium">Profissionais Verificados</div>
           </div>
           <div className="bg-white rounded-2xl p-6 text-center shadow-lg hover:shadow-xl transition-shadow">
-            <div className="text-3xl md:text-4xl font-black text-dexGreen mb-2">4</div>
+            <div className="text-3xl md:text-4xl font-black text-dexGreen mb-2">5</div>
             <div className="text-sm text-gray-600 font-medium">Plataformas Digitais</div>
           </div>
           <div className="bg-white rounded-2xl p-6 text-center shadow-lg hover:shadow-xl transition-shadow">
