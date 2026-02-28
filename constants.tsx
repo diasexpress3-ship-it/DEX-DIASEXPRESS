@@ -12,10 +12,11 @@ Você é o Assistente Inteligente da DEX | DIASEXPRESS. Sua missão é "Simplifi
 Seu tom é profissional, ágil e inovador.
 
 Informações da Empresa:
-- DIASEXPRESS Soluções Domésticas: Conecta clientes a eletricistas e canalizadores qualificados.
-- Nexus Aqua Manager: Gestão inteligente de consumo de água via captura de imagens e monitoramento em tempo real.
-- DEX GastroManager: Gestão de inventário e vendas para bares e restaurantes com QR Code.
-- InviteExpress: Convites digitais inteligentes com confirmação em tempo real.
+- DEX-SOLUÇÕES DOMÉSTICAS: Plataforma de serviços domésticos gerida pela DEX, conectando clientes a prestadores de confiança.
+- DEX-ATS-PRO: Primeiro ATS moçambicano com Chatbot WhatsApp para recrutamento inteligente.
+- AQUA MANAGER: Gestão inteligente de consumo de água via captura de imagens e monitoramento em tempo real.
+- DEX GASTROMANAGER: Gestão de inventário e vendas para bares e restaurantes com QR Code.
+- INVITEEXPRESS: Convites digitais inteligentes com confirmação em tempo real.
 
 Fundador: Vicente Dias.
 Localização: Maputo, Moçambique.
@@ -26,6 +27,7 @@ Sempre ofereça ajuda para explicar serviços ou direcionar para a página de co
 // Mapeamento de imagens por ID do serviço
 const SERVICE_IMAGE_MAP: Record<string, string> = {
   diasexpress: "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=800&auto=format&fit=crop",
+  dexAts: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?q=80&w=800&auto=format&fit=crop",
   aquamanager: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop",
   gastromanager: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=800&auto=format&fit=crop",
   inviteexpress: "https://images.unsplash.com/photo-1511795409834-ef04bbd61622?q=80&w=800&auto=format&fit=crop"
@@ -34,16 +36,26 @@ const SERVICE_IMAGE_MAP: Record<string, string> = {
 export const SERVICES: ServiceInfo[] = [
   { 
     id: "diasexpress",
-    title: "DIASEXPRESS Soluções Domésticas", 
-    description: "Serviços domésticos confiáveis: eletricistas, canalizadores e técnicos monitorados.", 
+    title: "DEX-SOLUÇÕES DOMÉSTICAS", 
+    description: "Plataforma de serviços domésticos gerida pela DEX, conectando clientes a prestadores de confiança.", 
     fullDescription: "Conectamos você a profissionais qualificados para manutenção residencial, garantindo segurança e o selo de qualidade DEX em cada tarefa do seu dia-a-dia.",
     color: "#FF7A00", 
     link: "/services/diasexpress",
-    image: SERVICE_IMAGE_MAP.diasexpress
+    image: SERVICE_IMAGE_MAP.diasexpress,
+    categories: []
+  },
+  { 
+    id: "dex-ats",
+    title: "DEX-ATS-PRO", 
+    description: "Primeiro ATS moçambicano com Chatbot WhatsApp para recrutamento inteligente.", 
+    fullDescription: "Plataforma completa de recrutamento com sistema de rastreamento de candidatos, chatbot de triagem via WhatsApp, gestão multi-cliente e relatórios avançados. Reduza em 70% o tempo de triagem e aumente em 50% a taxa de conversão.",
+    color: "#8B5CF6", 
+    link: "/dex-ats-pro",
+    image: SERVICE_IMAGE_MAP.dexAts
   },
   { 
     id: "aquamanager",
-    title: "Nexus Aqua Manager", 
+    title: "AQUA MANAGER", 
     description: "Gestão inteligente de consumo de água baseada em imagens e monitoramento real-time.", 
     fullDescription: "Solução avançada para monitoramento hídrico. Captura de consumo baseada em imagens (OCR), monitoramento em tempo real e gestão eficiente de exclusões para condomínios e empresas.",
     color: "#0EA5E9", 
@@ -52,7 +64,7 @@ export const SERVICES: ServiceInfo[] = [
   },
   { 
     id: "gastromanager",
-    title: "DEX GastroManager", 
+    title: "DEX GASTROMANAGER", 
     description: "Gestão inteligente de inventário e vendas para bares e restaurantes.", 
     fullDescription: "Uma solução robusta para o setor de restauração. Monitore inventário, tendências de vendas e gere QR Codes por produto em tempo real.",
     color: "#0A1D56", 
@@ -61,7 +73,7 @@ export const SERVICES: ServiceInfo[] = [
   },
   { 
     id: "inviteexpress",
-    title: "InviteExpress", 
+    title: "INVITEEXPRESS", 
     description: "Gestão de convites digitais inteligentes para todos os tipos de eventos.", 
     fullDescription: "A tecnologia da DEX para seus eventos. Crie convites digitais, publique e entregue via QR Code com confirmação em tempo real.",
     color: "#4CAF50", 
@@ -75,28 +87,35 @@ export const SERVICE_IMAGES = [
     url: SERVICE_IMAGE_MAP.diasexpress,
     title: "Soluções Domésticas",
     service: "diasexpress",
-    description: "Eletricistas e canalizadores profissionais para sua residência.",
+    description: "Profissionais verificados para sua casa e empresa.",
+    isGif: false
+  },
+  {
+    url: SERVICE_IMAGE_MAP.dexAts,
+    title: "ATS Recrutamento",
+    service: "dex-ats",
+    description: "Recrutamento inteligente com chatbot WhatsApp.",
     isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.aquamanager,
-    title: "Nexus Aqua Manager",
+    title: "Gestão de Água",
     service: "aquamanager",
-    description: "Monitoramento hídrico e faturamento inteligente com leitura via imagem.",
+    description: "Monitoramento hídrico com leitura por imagem.",
     isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.gastromanager,
     title: "Gestão Gastro",
     service: "gastromanager",
-    description: "Controle de inventário e vendas para o setor gastronômico.",
+    description: "Controle de inventário e vendas.",
     isGif: false
   },
   {
     url: SERVICE_IMAGE_MAP.inviteexpress,
     title: "Convites Digitais",
     service: "inviteexpress",
-    description: "Tecnologia digital para convites de eventos de todos os tipos.",
+    description: "Convites inteligentes com QR Code.",
     isGif: false
   }
 ];
@@ -242,6 +261,11 @@ export const PARTNERS: Partner[] = [
     name: "Fornecimento & Gestão Hídrica",
     link: "/contact?service=Parceria Aqua",
     description: "Entidades e gestores de recursos hídricos para integração com a plataforma Nexus Aqua Manager de faturamento inteligente."
+  },
+  {
+    name: "Recrutamento & RH",
+    link: "/contact?service=Parceria ATS",
+    description: "Empresas de recrutamento interessadas em implementar o DEX-ATS-PRO para otimizar processos de seleção."
   },
   {
     name: "Salões & Organizadores de Eventos",
