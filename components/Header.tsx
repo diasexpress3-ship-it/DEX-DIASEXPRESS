@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -58,18 +57,56 @@ const Header: React.FC = () => {
         <nav className="space-x-8 hidden md:flex items-center">
           <Link to="/" className="text-gray-700 font-bold text-sm hover:text-dexOrange transition-colors tracking-tight">INÍCIO</Link>
           <Link to="/about" className="text-gray-700 font-bold text-sm hover:text-dexOrange transition-colors tracking-tight">SOBRE</Link>
+          
+          {/* DROPDOWN DE SERVIÇOS ATUALIZADO */}
           <div className="relative group">
             <button className="text-gray-700 font-bold text-sm hover:text-dexOrange flex items-center transition-colors tracking-tight">
               SERVIÇOS
               <svg className="ml-1 h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" /></svg>
             </button>
-            <div className="absolute hidden group-hover:block bg-white shadow-2xl mt-0 pt-4 py-2 rounded-xl border border-gray-100 min-w-[320px] animate-fadeIn">
-              <Link to="/services/diasexpress" className="block px-6 py-4 hover:bg-gray-50 text-gray-800 font-black text-xs hover:text-dexOrange transition-colors border-b last:border-0 uppercase tracking-widest">DIASEXPRESS SOLUÇÕES DOMÉSTICAS</Link>
-              <Link to="/aquamanager" className="block px-6 py-4 hover:bg-sky-50 text-gray-800 font-black text-xs hover:text-sky-500 transition-colors border-b last:border-0 uppercase tracking-widest text-sky-600">Nexus Aqua Manager (Água)</Link>
-              <Link to="/gastromanager" className="block px-6 py-4 hover:bg-gray-50 text-gray-800 font-black text-xs hover:text-dexBlue transition-colors border-b last:border-0 uppercase tracking-widest text-dexDarkBlue">DEX GastroManager (Bares/Rest)</Link>
-              <Link to="/inviteexpress" className="block px-6 py-4 hover:bg-gray-50 text-gray-800 font-black text-xs hover:text-dexGreen transition-colors uppercase tracking-widest">InviteExpress</Link>
+            <div className="absolute hidden group-hover:block bg-white shadow-2xl mt-0 pt-4 py-2 rounded-xl border border-gray-100 min-w-[320px] animate-fadeIn z-50">
+              {/* 1ª OPÇÃO: DEX-SOLUÇÕES DOMÉSTICAS (atualizado) */}
+              <Link 
+                to="/services/diasexpress" 
+                className="block px-6 py-4 hover:bg-orange-50 text-gray-800 font-black text-xs hover:text-dexOrange transition-colors border-b border-gray-100 uppercase tracking-widest"
+              >
+                DEX-SOLUÇÕES DOMÉSTICAS
+              </Link>
+              
+              {/* 2ª OPÇÃO: DEX-ATS-PRO (NOVO) */}
+              <Link 
+                to="/dex-ats-pro" 
+                className="block px-6 py-4 hover:bg-purple-50 text-gray-800 font-black text-xs hover:text-purple-600 transition-colors border-b border-gray-100 uppercase tracking-widest"
+              >
+                DEX-ATS-PRO (Recrutamento)
+              </Link>
+              
+              {/* 3ª OPÇÃO: AQUA MANAGER (atualizado) */}
+              <Link 
+                to="/aquamanager" 
+                className="block px-6 py-4 hover:bg-sky-50 text-gray-800 font-black text-xs hover:text-sky-500 transition-colors border-b border-gray-100 uppercase tracking-widest"
+              >
+                AQUA MANAGER
+              </Link>
+              
+              {/* 4ª OPÇÃO: DEX GASTROMANAGER */}
+              <Link 
+                to="/gastromanager" 
+                className="block px-6 py-4 hover:bg-gray-50 text-gray-800 font-black text-xs hover:text-dexBlue transition-colors border-b border-gray-100 uppercase tracking-widest"
+              >
+                DEX GASTROMANAGER
+              </Link>
+              
+              {/* 5ª OPÇÃO: INVITEEXPRESS */}
+              <Link 
+                to="/inviteexpress" 
+                className="block px-6 py-4 hover:bg-green-50 text-gray-800 font-black text-xs hover:text-green-600 transition-colors uppercase tracking-widest"
+              >
+                INVITEEXPRESS
+              </Link>
             </div>
           </div>
+          
           <Link to="/partners" className="text-gray-700 font-bold text-sm hover:text-dexOrange transition-colors tracking-tight">PARCEIROS</Link>
           <Link to="/contact" className="bg-dexOrange text-white px-6 py-2.5 rounded-lg font-black text-xs tracking-widest hover:bg-dexBlue transition-all transform hover:scale-105 shadow-lg shadow-orange-500/20">CONTATO</Link>
         </nav>
