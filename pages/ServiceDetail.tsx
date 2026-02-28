@@ -58,6 +58,17 @@ const ServiceDetail: React.FC = () => {
     { label: "Cobertura", value: "Maputo", icon: "📍", color: "from-purple-500 to-pink-500" },
   ];
 
+  // Cores para os cards de categorias
+  const categoryColors = [
+    { from: 'from-amber-500', to: 'to-orange-500', light: 'from-amber-50', border: 'border-amber-200' },
+    { from: 'from-sky-500', to: 'to-blue-500', light: 'from-sky-50', border: 'border-sky-200' },
+    { from: 'from-emerald-500', to: 'to-green-500', light: 'from-emerald-50', border: 'border-emerald-200' },
+    { from: 'from-purple-500', to: 'to-pink-500', light: 'from-purple-50', border: 'border-purple-200' },
+    { from: 'from-red-500', to: 'to-rose-500', light: 'from-red-50', border: 'border-red-200' },
+    { from: 'from-indigo-500', to: 'to-blue-500', light: 'from-indigo-50', border: 'border-indigo-200' },
+    { from: 'from-stone-500', to: 'to-zinc-500', light: 'from-stone-50', border: 'border-stone-200' },
+  ];
+
   return (
     <div className="bg-white min-h-screen">
       {/* Hero Section - Mantido igual */}
@@ -160,15 +171,13 @@ const ServiceDetail: React.FC = () => {
           {/* Grid de Categorias Premium */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredCategories.map((categoria, index) => {
-              const categoryColors = [
-                { from: 'from-amber-500', to: 'to-orange-500', light: 'from-amber-50', border: 'border-amber-200' },
-                { from: 'from-sky-500', to: 'to-blue-500', light: 'from-sky-50', border: 'border-sky-200' },
-                { from: 'from-emerald-500', to: 'to-green-500', light: 'from-emerald-50', border: 'border-emerald-200' },
-                { from: 'from-purple-500', to: 'to-pink-500', light: 'from-purple-50', border: 'border-purple-200' },
-                { from: 'from-red-500', to: 'to-rose-500', light: 'from-red-50', border: 'border-red-200' },
-                { from: 'from-indigo-500', to: 'to-blue-500', light: 'from-indigo-50', border: 'border-indigo-200' },
-              ];
-              const colorScheme = categoryColors[index % categoryColors.length];
+              // CORREÇÃO: Usar cores com fallback seguro
+              const colorScheme = categoryColors[index % categoryColors.length] || {
+                from: 'from-gray-500',
+                to: 'to-gray-600',
+                light: 'from-gray-50',
+                border: 'border-gray-200'
+              };
 
               return (
                 <div
@@ -291,7 +300,7 @@ const ServiceDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Processo de Funcionamento com Animações - Mantido e Melhorado */}
+        {/* Processo de Funcionamento com Animações */}
         <div className="mb-20">
           <div className="inline-block bg-gray-100 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-4 text-gray-500">
             FLUXO DE ATENDIMENTO
@@ -335,6 +344,8 @@ const ServiceDetail: React.FC = () => {
                 key={index}
                 className="group relative overflow-hidden rounded-3xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:scale-105 animate-float-up-down"
                 style={{ animationDelay: `${index * 0.2}s` }}
+                onMouseEnter={() => setHoveredCard(index + 10)}
+                onMouseLeave={() => setHoveredCard(null)}
               >
                 <div className={`absolute inset-0 bg-gradient-to-br ${step.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
                 
@@ -360,7 +371,7 @@ const ServiceDetail: React.FC = () => {
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-100">
                     <div className={`
                       h-full bg-gradient-to-r ${step.color} transition-all duration-500
-                      ${hoveredCard === index ? 'w-full' : 'w-0'}
+                      ${hoveredCard === index + 10 ? 'w-full' : 'w-0'}
                     `} />
                   </div>
                 </div>
@@ -403,7 +414,7 @@ const ServiceDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Sidebar (mantida igual) */}
+        {/* Sidebar e Request Quote */}
         <div className="grid lg:grid-cols-3 gap-16">
           <div className="lg:col-span-2">
             <RequestQuoteSection serviceName={service.title} />
@@ -456,4 +467,3 @@ const ServiceDetail: React.FC = () => {
 };
 
 export default ServiceDetail;
-
