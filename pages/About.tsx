@@ -204,11 +204,11 @@ const About: React.FC = () => {
         </div>
       </div>
 
-      {/* Leadership Section - CEO & Founder (Mantido com texto melhorado) */}
+      {/* Leadership Section - CEO & Founder (Com texto melhorado) */}
       <div className="container mx-auto py-32 px-6 max-w-7xl">
         <div className="grid lg:grid-cols-2 gap-20 items-center">
           
-          {/* Texto do Fundador - Melhorado */}
+          {/* Texto do Fundador - Versão Melhorada com Trajetória */}
           <div className="animate-fadeIn order-2 lg:order-1">
             <span className="text-dexOrange font-black text-xs uppercase tracking-[0.5em] mb-4 block">
               LIDERANÇA
@@ -219,20 +219,20 @@ const About: React.FC = () => {
             
             <div className="space-y-6 text-gray-600 text-lg leading-relaxed">
               <p>
-                <strong className="text-dexDarkBlue">CEO e Fundador da DEX | DIASEXPRESS</strong>, 
-                Vicente Dias é um empreendedor moçambicano com a missão de digitalizar serviços e 
-                criar pontes entre pessoas e oportunidades através da tecnologia.
+                Com <strong className="text-dexDarkBlue">mais de 10 anos de experiência</strong> na gestão de operações de backoffice 
+                nos setores bancário e telecomunicações, Vicente Dias construiu uma carreira sólida 
+                na governança de processos, conformidade regulatória (KYC/AML) e gestão de riscos operacionais.
               </p>
               <p>
-                Com uma visão focada no impacto social e na inovação com identidade local, lidera 
-                uma equipa que desenvolve soluções pensadas para a realidade moçambicana — desde 
-                a gestão de serviços domésticos até sistemas avançados de recrutamento e 
-                desenvolvimento de aplicações sob medida.
+                A sua expertise na definição e monitorização de <strong className="text-dexDarkBlue">KPIs e SLAs</strong>, aliada à liderança de 
+                equipas multifuncionais, garantiu a integridade e qualidade dos dados que alimentam 
+                relatórios financeiros de grandes instituições — sempre em ambientes de alta pressão 
+                e com múltiplas operações simultâneas.
               </p>
               <p>
-                A sua abordagem combina <strong className="text-dexDarkBlue">excelência operacional</strong>, 
-                <strong className="text-dexDarkBlue"> transparência</strong> e um profundo compromisso 
-                com a <strong className="text-dexDarkBlue">geração de emprego e desenvolvimento local</strong>.
+                Foi essa bagagem que o levou a identificar uma oportunidade clara: <strong className="text-dexDarkBlue">
+                levar a mesma excelência operacional, segurança e transparência</strong> para o dia a dia 
+                das pessoas e empresas moçambicanas, através da DEX.
               </p>
             </div>
 
